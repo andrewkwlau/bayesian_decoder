@@ -11,7 +11,7 @@ import utils as u
 def generate_confusion_mtx(
         mouse,
         decoded_pos: np.ndarray, 
-        test_condition: str, 
+        paradigm: str, 
         num_pbins: int
 ) -> np.ndarray:
     """
@@ -19,11 +19,13 @@ def generate_confusion_mtx(
 
     Args:
         mouse (MouseData):
+            An instance of class MouseData. Identify which mouse's data to use.
 
         decoded_pos (np.ndarray):
+            Decoded position matrix.
 
-        test_condition (str):
-            'light' or 'dark'.
+        paradigm (str):
+            'lgtlgt', 'drkdrk', 'lgtdrk', 'drklgt'.
 
         num_pbins (float):
             Number of decoded position bins excluding reward zone.
@@ -39,9 +41,9 @@ def generate_confusion_mtx(
 
     # Specify true position and predicted position
     pos_light, pos_dark = u.split_lightdark(mouse.position_mtx_masked, mouse.darktrials)         
-    if test_condition == 'light':
+    if paradigm == 'lgtlgt' or paradigm == 'drklgt':
         true = pos_light    
-    elif test_condition == 'dark':
+    elif paradigm == 'drkdrk' or paradigm == 'lgtdrk':
         true = pos_dark
     pred = decoded_pos
         
@@ -83,9 +85,6 @@ def generate_confusion_mtx_allchunks(
 
         decoded_pos_allchunks (np.ndarray):
             Decoded positions of all chunks and all paradigms
-
-        test_condition (str):
-            'light' or 'dark'.
 
         num_pbins (float):
             Number of decoded position bins excluding reward zone.
@@ -167,7 +166,7 @@ def generate_confusion_mtx_allchunks(
 def generate_confusion_mtx_perchunk(
         mouse: d.MouseData,
         decoded_pos_chunk: np.ndarray,
-        test_condition: str,
+        paradigm: str,
         num_pbins: int,
         num_chunks: int,
         chunk_idx: int
@@ -182,8 +181,8 @@ def generate_confusion_mtx_perchunk(
         decoded_pos_chunk (np.ndarray):
             Decoded position of a chunk.
 
-        test_condition (str):
-            'light' or 'dark'.
+        paradigm (str):
+            'lgtlgt', 'drkdrk', 'lgtdrk', 'drklgt'.
 
         num_pbins (int):
             Number of decoded position bins excluding reward zone.
@@ -204,11 +203,11 @@ def generate_confusion_mtx_perchunk(
 
     # Specify true position and predicted position
     pos_light, pos_dark = u.split_lightdark(mouse.position_mtx_masked, mouse.darktrials)
-    if test_condition == 'light':
+    if paradigm == 'lgtlgt' or paradigm == 'drklgt':
         pos_light_sorted = u.sort_trialstart(pos_light, mouse.position_mtx, mouse.darktrials, 'light')
         pos_light_chunks = u.chunk_trials(pos_light_sorted, num_chunks)
         true = pos_light_chunks[chunk_idx]
-    elif test_condition == 'dark':
+    elif paradigm == 'drkdrk' or paradigm == 'lgtdrk':
         pos_dark_sorted = u.sort_trialstart(pos_dark, mouse.position_mtx, mouse.darktrials, 'dark')
         pos_dark_chunks = u.chunk_trials(pos_dark_sorted, num_chunks)
         true = pos_dark_chunks[chunk_idx]
@@ -240,21 +239,24 @@ def generate_confusion_mtx_perchunk(
 def compute_accuracy(
         mouse,
         decoded_pos: np.ndarray,
-        test_condition: str
+        paradigm: str
 ) -> float:
     """
     Compute accuracy rate of decoded position over non-NaN true position.
 
     Args:
         mouse (MouseData):
+            An instance of class MouseData. Identify which mouse's data to use.
 
         decoded_pos (np.ndarray):
+            Decoded position matrix.
 
-        test_condition (str):
-            'light' or 'dark'.
+        paradigm (str):
+            'lgtlgt', 'drkdrk', 'lgtdrk', 'drklgt'.
 
     Returns:
         accuracy_rate (float):
+            Accuracy rate across all predictions.
     """   
     # Check number of NaNs and non-NaNs in decoded positions
     num_nans = np.sum(np.isnan(decoded_pos))
@@ -262,9 +264,9 @@ def compute_accuracy(
     
     # Specify true positions
     pos_light, pos_dark = u.split_lightdark(mouse.position_mtx_masked, mouse.darktrials)
-    if test_condition == 'light':
+    if paradigm == 'lgtlgt' or paradigm == 'drklgt':
         true = pos_light
-    elif test_condition == 'dark':
+    elif paradigm == 'drkdrk' or paradigm == 'lgtdrk':
         true = pos_dark
 
     # Create a mask for time bins where there are decoder predictions
@@ -274,10 +276,10 @@ def compute_accuracy(
     accuracy_mtx = decoded_pos[predictions] == true[predictions]       
     accuracy_rate = np.sum(accuracy_mtx) / (len(accuracy_mtx))
 
-    print("number of NaNs in true position:", num_nans)
-    print("number of non-NaNs in true position:", num_non_nans)
+    print("number of NaNs in decoded position:", num_nans)
+    print("number of non-NaNs in decoded position:", num_non_nans)
     print("total decoder predictions:", accuracy_mtx.shape[0])  
-    print("accuracy rate excluding NaN true positions:", accuracy_rate)
+    print("accuracy rate excluding NaN decoded positions:", accuracy_rate)
     
     return accuracy_rate
 
@@ -346,7 +348,7 @@ def compute_accuracy_chunk(
 def compute_errors(
         mouse,
         decoded_pos: np.ndarray, 
-        test_condition: str
+        paradigm: str
 ) -> tuple:
     """
     Compute errors between decoded position and true position:
@@ -359,9 +361,10 @@ def compute_errors(
             An instance of class MouseData. Identify which mouse's data to use.
 
         decoded_pos (np.ndarray):
+            Decoded position matrix.
 
-        test_condition (str):
-            'light' or 'dark'.
+        paradigm (str):
+            'lgtlgt', 'drkdrk', 'lgtdrk', 'drklgt'
 
     Returns:
         tuple: a tuple containing:
@@ -371,9 +374,9 @@ def compute_errors(
     """
     pos_light, pos_dark = u.split_lightdark(mouse.position_mtx_masked, mouse.darktrials)
 
-    if test_condition == 'light':
+    if paradigm == 'lgtlgt' or paradigm == 'drklgt':
         true = pos_light
-    elif test_condition == 'dark':
+    elif paradigm == 'drkdrk' or paradigm == 'lgtdrk':
         true = pos_dark
 
     # Create a mask for time bins where there are decoder predictions
