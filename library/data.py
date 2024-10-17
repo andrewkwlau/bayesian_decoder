@@ -128,17 +128,17 @@ class MouseData:
         # Spike Probability
         print("Spike Probability:")
         print(self.spikeprob.shape)
-        print("Trial x 100ms Time Bin x Neuron")
+        print("Trial x Time Bin x Neuron")
         print()
         # Discrete Spikes
         print("Discrete Spikes:")
         print(self.spikes.shape)
-        print("Trial x 100ms Time Bin x Neuron")
+        print("Trial x Time Bin x Neuron")
         print()
         # Position Matrix
         print("Position Matrices:")
         print(self.position_mtx.shape)
-        print("Trial x 100ms Time Bin")
+        print("Trial x Time Bin")
         print()
         # Trial Info
         print("Dark Trials:")

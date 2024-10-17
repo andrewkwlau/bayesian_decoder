@@ -198,25 +198,30 @@ def run_decoder(
     # Decoder training set options
     print("7. Running decoder...")
     if smooth == True:
+        training_lgtlgt = mouse.fr_light_smoothed
+        training_drkdrk = mouse.fr_dark_smoothed
         if scale == True:
-            training_light = mouse.fr_light_scaled_smoothed
-            training_dark = mouse.fr_dark_scaled_smoothed
-        else:
-            training_light = mouse.fr_light_smoothed
-            trianing_dark = mouse.fr_dark_smoothed
-    else:
+            training_lgtdrk = mouse.fr_light_scaled_smoothed
+            training_drklgt = mouse.fr_dark_scaled_smoothed
+        elif scale == False:
+            training_lgtdrk = mouse.fr_light_smoothed
+            training_drklgt = mouse.fr_dark_smoothed
+    elif smooth == False:
+        training_lgtlgt = mouse.fr_light
+        training_drkdrk = mouse.fr_dark
         if scale == True:
-            training_light = mouse.fr_light_scaled
-            trianing_dark = mouse.fr_dark_scaled
-        else:
-            training_light = mouse.fr_light
-            training_dark = mouse.fr_dark
+            training_lgtdrk = mouse.fr_light_scaled
+            training_drklgt = mouse.fr_dark_scaled
+        elif scale == False:
+            training_lgtdrk = mouse.fr_light
+            training_drklgt = mouse.fr_dark
+    
 
     # Decoder with options for smoothing and scaling of firing rates
     print("Running lgtlgt...")
     posterior_lgtlgt, decoded_pos_lgtlgt = b.bayesian_decoder(
             mouse,
-            training_light,
+            training_lgtlgt,
             mouse.spikes_light,
             num_pbins,
             uniformprior
@@ -225,7 +230,7 @@ def run_decoder(
     print("Running drkdrk...")
     posterior_drkdrk, decoded_pos_drkdrk = b.bayesian_decoder(
             mouse,
-            training_dark,
+            training_drkdrk,
             mouse.spikes_dark,
             num_pbins,
             uniformprior
@@ -234,7 +239,7 @@ def run_decoder(
     print("Running lgtdrk...")
     posterior_lgtdrk, decoded_pos_lgtdrk = b.bayesian_decoder(
         mouse,
-        training_light,
+        training_lgtdrk,
         mouse.spikes_dark,
         num_pbins,
         uniformprior
@@ -243,7 +248,7 @@ def run_decoder(
     print("Running drklgt...")
     posterior_drklgt, decoded_pos_drklgt = b.bayesian_decoder(
         mouse,
-        training_dark,
+        training_drklgt,
         mouse.spikes_light,
         num_pbins,
         uniformprior
@@ -358,19 +363,23 @@ def run_decoder_chunks(
     # Decoder training set options
     print("7. Running decoder...")
     if smooth == True:
+        training_lgtlgt = fr_light_smoothed_chunks
+        training_drkdrk = fr_dark_smoothed_chunks
         if scale == True:
-            training_light = fr_light_scaled_smoothed_chunks
-            training_dark = fr_dark_scaled_smoothed_chunks
-        else:
-            training_light = fr_light_smoothed_chunks
-            trianing_dark = fr_dark_smoothed_chunks
-    else:
+            training_lgtdrk = fr_light_scaled_smoothed_chunks
+            training_drklgt = fr_dark_scaled_smoothed_chunks
+        elif scale == False:
+            training_lgtdrk = fr_light_smoothed_chunks
+            training_drklgt = fr_dark_smoothed_chunks
+    elif smooth == False:
+        training_lgtlgt = fr_light_chunks
+        training_drkdrk = fr_dark_chunks
         if scale == True:
-            training_light = fr_light_scaled_chunks
-            trianing_dark = fr_dark_scaled_chunks
-        else:
-            training_light = fr_light_chunks
-            training_dark = fr_dark_chunks
+            training_lgtdrk = fr_light_scaled_chunks
+            training_drklgt = fr_dark_scaled_chunks
+        elif scale == False:
+            training_lgtdrk = fr_light_chunks
+            training_drklgt = fr_dark_chunks
 
 
     # Loop through each chunk
@@ -378,7 +387,7 @@ def run_decoder_chunks(
         print("Decoding chunk ", i, "...")
         posterior_lgtlgt, decoded_pos_lgtlgt = b.bayesian_decoder_chunks(
             mouse,
-            training_light[i],
+            training_lgtlgt[i],
             spikes_light_chunks[i],
             trial_light_chunks[i],
             num_pbins,
@@ -387,7 +396,7 @@ def run_decoder_chunks(
         print("Chunk ", i, " lgtlgt completed.")
         posterior_drkdrk, decoded_pos_drkdrk = b.bayesian_decoder_chunks(
             mouse,
-            training_dark[i],
+            training_drkdrk[i],
             spikes_dark_chunks[i],
             trial_dark_chunks[i],
             num_pbins,
@@ -396,7 +405,7 @@ def run_decoder_chunks(
         print("Chunk ", i, " drkdrk completed.")
         posterior_lgtdrk, decoded_pos_lgtdrk = b.bayesian_decoder_chunks(
             mouse,
-            training_light[i],
+            training_lgtdrk[i],
             spikes_dark_chunks[i],
             trial_dark_chunks[i],
             num_pbins,
@@ -405,7 +414,7 @@ def run_decoder_chunks(
         print("Chunk ", i, " lgtdrk completed.")
         posterior_drklgt, decoded_pos_drklgt = b.bayesian_decoder_chunks(
             mouse,
-            training_dark[i],
+            training_drklgt[i],
             spikes_light_chunks[i],
             trial_light_chunks[i],
             num_pbins,
@@ -484,7 +493,7 @@ def run_results(
     confusion_mtx_lgtlgt = r.generate_confusion_mtx(
         mouse,
         decoded_pos_all['lgtlgt'],
-        'light',
+        'lgtlgt',
         num_pbins
     )
     print()
@@ -492,7 +501,7 @@ def run_results(
     confusion_mtx_drkdrk = r.generate_confusion_mtx(
         mouse,
         decoded_pos_all['drkdrk'],
-        'dark',
+        'drkdrk',
         num_pbins
     )
     print()
@@ -500,7 +509,7 @@ def run_results(
     confusion_mtx_lgtdrk = r.generate_confusion_mtx(
         mouse,
         decoded_pos_all['lgtdrk'],
-        'dark',
+        'lgtdrk',
         num_pbins
     )
     print()
@@ -508,7 +517,7 @@ def run_results(
     confusion_mtx_drklgt = r.generate_confusion_mtx(
         mouse,
         decoded_pos_all['drklgt'],
-        'light',
+        'drklgt',
         num_pbins
     )
 
@@ -518,28 +527,28 @@ def run_results(
     accuracy_lgtlgt = r.compute_accuracy(
         mouse,
         decoded_pos_all['lgtlgt'],
-        'light'
+        'lgtlgt'
     )
     print()
     print("Accuracy drkdrk")
     accuracy_drkdrk = r.compute_accuracy(
         mouse,
         decoded_pos_all['drkdrk'],
-        'dark'
+        'drkdrk'
     )
     print()
     print("Accuracy lgtdrk")
     accuracy_lgtdrk = r.compute_accuracy(
         mouse,
         decoded_pos_all['lgtdrk'],
-        'dark'
+        'lgtdrk'
     )
     print()
     print("Accuracy drklgt")
     accuracy_drklgt = r.compute_accuracy(
         mouse,
         decoded_pos_all['drklgt'],
-        'light'
+        'drklgt'
     )
 
     # Errors
@@ -548,28 +557,28 @@ def run_results(
     errors_lgtlgt, mse_lgtlgt, rt_mse_lgtlgt = r.compute_errors(
         mouse,
         decoded_pos_all['lgtlgt'],
-        'light'
+        'lgtlgt'
     )
     print()
     print("Errors drkdrk")
     errors_drkdrk, mse_drkdrk, rt_mse_drkdrk = r.compute_errors(
         mouse,
         decoded_pos_all['drkdrk'],
-        'dark'
+        'drkdrk'
     )
     print()
     print("Errors lgtdrk")
     errors_lgtdrk, mse_lgtdrk, rt_mse_lgtdrk = r.compute_errors(
         mouse,
         decoded_pos_all['lgtdrk'],
-        'dark'
+        'lgtdrk'
     )
     print()
     print("Errors drklgt")
     errors_drklgt, mse_drklgt, rt_mse_drklgt = r.compute_errors(
         mouse,
         decoded_pos_all['drklgt'],
-        'light'
+        'drklgt'
     )
 
 
