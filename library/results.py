@@ -337,10 +337,10 @@ def compute_accuracy_chunk(
     accuracy_mtx = decoded_pos_chunk[predictions] == true[predictions]             
     accuracy_rate_chunk = np.sum(accuracy_mtx) / (len(accuracy_mtx))
 
-    print("number of NaNs in true position:", num_nans)
-    print("number of non-NaNs in true position:", num_non_nans)
+    print("number of NaNs in decoded position:", num_nans)
+    print("number of non-NaNs in decoded position:", num_non_nans)
     print("total decoder predictions:", accuracy_mtx.shape[0])  
-    print("accuracy rate excluding NaN true positions:", accuracy_rate_chunk)
+    print("accuracy rate excluding NaN decoded positions:", accuracy_rate_chunk)
     
     return accuracy_rate_chunk
 
