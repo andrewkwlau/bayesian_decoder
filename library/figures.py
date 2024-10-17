@@ -101,7 +101,6 @@ def plot_single_tuning(
     plt.show()
 
 
-
 def plot_single_heatmap(
         mouse: d.MouseData,
         data: np.ndarray,
@@ -195,8 +194,6 @@ def plot_single_heatmap(
     plt.show()
 
 
-
-
 def plot_confusion_mtx(
         mouse: d.MouseData,
         confusion_mtx: np.ndarray,
@@ -258,14 +255,18 @@ def plot_confusion_mtx(
     cbar = fig.colorbar(im1, ax=ax1, shrink=0.75)
     cbar.set_label("% of decoded position for each true position")
 
-
-    if save == True:
-        plt.savefig('./figures/confusion_mtx.png', dpi=300)
-
     if save == True:
         plt.savefig(
             '../savefig/'+ mouse.mouse_ID +'_confusion_mtx_'+ paradigm +'.png',
             dpi=300
         )
-
     plt.show()
+
+
+
+def plot_accuracy(
+        mouse
+):
+    """
+    """
+    pass
