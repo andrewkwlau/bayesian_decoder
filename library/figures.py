@@ -150,11 +150,11 @@ def plot_single_heatmap(
        
     # Plot    
     if data_type == "spikeprob":
-        im1 = ax1.imshow(sorted_data_light, cmap = 'turbo', vmax=0.4)
-        im2 = ax2.imshow(sorted_data_dark, cmap="turbo", vmax=0.4)        
+        im1 = ax1.imshow(sorted_data_light, cmap = 'turbo')
+        im2 = ax2.imshow(sorted_data_dark, cmap="turbo")        
     elif data_type == "spikes":
-        im1 = ax1.imshow(sorted_data_light, cmap = 'turbo', vmax=15)
-        im2 = ax2.imshow(sorted_data_dark, cmap="turbo", vmax=15)
+        im1 = ax1.imshow(sorted_data_light, cmap = 'turbo')
+        im2 = ax2.imshow(sorted_data_dark, cmap="turbo")
 
     # Figure Settings
     ax_settings = {'xlabel':'position (cm)',

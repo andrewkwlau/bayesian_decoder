@@ -19,6 +19,8 @@ def preprocess_data(loaded_data):
             - position_mtx
             - darktrials
             - deltrials
+            - spikeprob_shuffled
+            - spikes_shuffled
 
     Returns:
         tuple: a tuple containining:
@@ -32,32 +34,59 @@ def preprocess_data(loaded_data):
                 (Trial) Indices of light/dark trials. Light = 0, Dark = 1.
             - deltrials (ndarray):
                 (Trial) Indices of deleted trials.
+            - spikeprob_shuffled (list)
+            - spikes_shuffled (list)
     """
-    spikeprob, spikes, position_mtx, darktrials, deltrials = loaded_data
+    spikeprob, spikes, position_mtx, darktrials, deltrials, spikeprob_shuffled, spikes_shuffled = loaded_data
 
-    spikeprob, spikes, darktrials = align_axes(spikeprob, spikes, darktrials)
+    # Align axes
+    spikeprob = align_axes(spikeprob)
+    spikes = align_axes(spikes)
+    darktrials = align_axes(darktrials, dark=True)
+    # Format position index to python
     position_mtx, deltrials = format_pos_idx(position_mtx, deltrials)
-    spikeprob, spikes, position_mtx, darktrials = remove_deleted_trials(spikeprob, spikes,position_mtx, darktrials, deltrials)
-    spikeprob, spikes = remove_nonnan_neuron(spikeprob, spikes)
+    # Remove deleted trials
+    spikeprob = remove_deltrials(spikeprob, deltrials)
+    spikes = remove_deltrials(spikes, deltrials)
+    position_mtx = remove_deltrials(position_mtx, deltrials)
+    darktrials = remove_deltrials(darktrials, deltrials)
+    # Remove non-NaN neurons
+    spikeprob = remove_nonnan_neuron(spikeprob)
+    spikes = remove_nonnan_neuron(spikes)
+    # Match NaN mask
     spikes = match_nan_from_spikeprob(spikeprob, spikes)
+    # Remove position matrix artefacts
     position_mtx = remove_pos_artefacts(position_mtx)
 
-    return spikeprob, spikes, position_mtx, darktrials, deltrials
+    # Pre-process shuffled data
+    for rep in range(len(spikes_shuffled)):
+        # Align axes
+        spikeprob_shuffled[rep] = align_axes(spikeprob_shuffled[rep])
+        spikes_shuffled[rep] = align_axes(spikes_shuffled[rep])
+        # Remove deleted trials
+        spikeprob_shuffled[rep] = remove_deltrials(spikeprob_shuffled[rep], deltrials)
+        spikes_shuffled[rep] = remove_deltrials(spikes_shuffled[rep], deltrials)
+        # Remove non-NaN neurons
+        spikeprob_shuffled[rep] = remove_nonnan_neuron(spikeprob_shuffled[rep])
+        spikes_shuffled[rep] = remove_nonnan_neuron(spikes_shuffled[rep])
+        # Match NaN mask
+        # spikes_shuffled[rep] = match_nan_from_spikeprob(spikeprob_shuffled[rep], spikes_shuffled[rep])
+
+    return spikeprob, spikes, position_mtx, darktrials, deltrials, spikeprob_shuffled, spikes_shuffled
 
 
-def align_axes(spikeprob, spikes, darktrials):
+def align_axes(data, dark = False):
     """
     Align data matrices axes into: Trials x ____ x Neurons.
+    If data matrix is darktrials, set dark = True.
     """
-    spikeprob = spikeprob.swapaxes(0,1)
-    spikeprob = spikeprob.swapaxes(1,2)
+    if dark == True:
+        data = data.swapaxes(0,1)
+    else:
+        data = data.swapaxes(0,1)
+        data = data.swapaxes(1,2)
 
-    spikes = spikes.swapaxes(0,1)
-    spikes = spikes.swapaxes(1,2)
-
-    darktrials = darktrials.swapaxes(0,1)
-
-    return spikeprob, spikes, darktrials
+    return data
 
 
 def format_pos_idx(position_mtx, deltrials):
@@ -78,29 +107,23 @@ def format_pos_idx(position_mtx, deltrials):
     return position_mtx, deltrials
 
 
-def remove_deleted_trials(spikeprob, spikes, position_mtx, darktrials, deltrials):
+def remove_deltrials(data, deltrials):
     """
     Remove deleted trials.
     """
-    spikeprob = np.delete(spikeprob, deltrials, axis=0)
-    spikes = np.delete(spikes, deltrials, axis=0)
-    position_mtx = np.delete(position_mtx, deltrials, axis=0)
-    darktrials = np.delete(darktrials, deltrials, axis=0)
-
-    return spikeprob, spikes, position_mtx, darktrials
+    data = np.delete(data, deltrials, axis=0)
+    return data
 
 
-def remove_nonnan_neuron(spikeprob, spikes):
+def remove_nonnan_neuron(data):
     """
     Remove non-neuron data, n=0 and n=1 (background and neuropil).
 
     In upstream data processing, ROI 0 and ROI 1 are not neurons. They are the 
     baseline from the background and the neuropil.
     """
-    spikeprob = np.delete(spikeprob, [0,1], axis=2)
-    spikes = np.delete(spikes, [0,1], axis=2)
-
-    return spikeprob, spikes
+    data = np.delete(data, [0,1], axis=2)
+    return data
 
 
 def match_nan_from_spikeprob(spikeprob, spikes):

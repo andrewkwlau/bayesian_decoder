@@ -44,21 +44,27 @@ def load_data(mouse_ID, tau=None):
         time_binned_SpikeInf = load_matfiles("../datafiles/"+ mouse_ID +"/time_binned_SpikeInf.mat")
         time_binned_DiscreteSpikes = load_matfiles("../datafiles/"+ mouse_ID +"/time_binned_DiscreteSpikes.mat")
         target_positions = load_matfiles("../datafiles/"+ mouse_ID +"/target_positions.mat")
+        Shuffled_time_binned_SpikeInf = load_matfiles("../datafiles/"+ mouse_ID +"/Shuffled_time_binned_SpikeInf.mat")
+        Shuffled_time_binned_DiscreteSpikes = load_matfiles("../datafiles/"+ mouse_ID +"/Shuffled_time_binned_DiscreteSpikes.mat")
 
     elif tau >= 0.2:
         ms = str(int(tau * 1000))
-
         time_binned_SpikeInf = load_matfiles("../datafiles/"+ mouse_ID +"/time_binned_SpikeInf_"+ ms +"msbins.mat")
-        time_binned_DiscreteSpikes = load_matfiles("../datafiles/"+ mouse_ID +"/time_binned_DiscreteSpikes_" + ms +"msbins.mat")
-        target_positions = load_matfiles("../datafiles/"+ mouse_ID +"/target_positions_" + ms +"msbins.mat")
+        time_binned_DiscreteSpikes = load_matfiles("../datafiles/"+ mouse_ID +"/time_binned_DiscreteSpikes_"+ ms +"msbins.mat")
+        target_positions = load_matfiles("../datafiles/"+ mouse_ID +"/target_positions_"+ ms +"msbins.mat")
+        Shuffled_time_binned_SpikeInf = load_matfiles("../datafiles/"+ mouse_ID +"/Shuffled_time_binned_SpikeInf_"+ ms +"msbins.mat")
+        Shuffled_time_binned_DiscreteSpikes = load_matfiles("../datafiles/"+ mouse_ID +"/Shuffled_time_binned_DiscreteSpikes_"+ ms +"msbins.mat")
                
     darktrial_raw = load_matfiles("../datafiles/"+ mouse_ID +"/darktrial_raw.mat")
     del_trials = load_matfiles("../datafiles/"+ mouse_ID +"/del_trials.mat")
     
+    # Extracting data matrix from dictionary
     spikeprob = time_binned_SpikeInf['time_Caimg']
     spikes = time_binned_DiscreteSpikes['time_Caimg']
     position_mtx = target_positions['position_tbins']
     deltrials = del_trials['del_trials']
+    spikeprob_shuffled = Shuffled_time_binned_SpikeInf['Shuffled_time_Caimg']
+    spikes_shuffled = Shuffled_time_binned_DiscreteSpikes['Shuffled_time_Caimg']
 
     # Handling inconsistency in MATLAB data keys and matrix shape for darktrials
     if mouse_ID == 'C57_60_Octavius':
@@ -68,7 +74,7 @@ def load_data(mouse_ID, tau=None):
     else:
         darktrials = darktrial_raw['darktrial']
 
-    return spikeprob, spikes, position_mtx, darktrials, deltrials
+    return spikeprob, spikes, position_mtx, darktrials, deltrials, spikeprob_shuffled, spikes_shuffled
 
 
 @dataclass
@@ -80,6 +86,8 @@ class MouseData:
     position_mtx: np.ndarray
     darktrials: np.ndarray
     deltrials: np.ndarray
+    spikeprob_shuffled: list
+    spikes_shuffled: list
 
     # Fields to be filled in as needed when running decoder pipeline
     tau: float = None
