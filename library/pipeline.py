@@ -441,6 +441,13 @@ def run_decoder_chunks(
     return posterior_allchunks, decoded_pos_allchunks
 
 
+def run_decoder_chance(
+        mouse
+):
+    """
+    """
+    pass
+
 def run_results(
         mouse: d.MouseData, 
         posterior_all: dict, 
@@ -691,6 +698,7 @@ def run_results_chunks(
         rt_mse_chunk = {}
 
         for paradigm in decoded_pos_allchunks[i]:
+            print("Accuracy chunk", i, paradigm, ":")
             accuracy = r.compute_accuracy_chunk(
                 mouse,
                 decoded_pos_allchunks[i][paradigm],
@@ -698,6 +706,7 @@ def run_results_chunks(
                 num_chunks,
                 i
             )
+            print("Errors chunk", i, paradigm, ":")
             errors, mse, rt_mse = r.compute_errors_chunk(
                 mouse,
                 decoded_pos_allchunks[i][paradigm],
