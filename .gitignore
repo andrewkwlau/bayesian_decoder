@@ -13,3 +13,8 @@ scripts/serena.ipynb
 scripts/test_priamus.ipynb
 scripts/test_serena.ipynb
 scripts/test.ipynb
+
+datafiles/C57_59_Napoleon
+datafiles/C57_61_Priamus
+datafiles/C57_913_Qiu
+datafiles/C57_915_Serena
