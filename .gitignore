@@ -1,5 +1,14 @@
 .DS_Store
 
+assets/savefig
+
+datafiles/C57_59_Napoleon
+datafiles/C57_60_Octavius/Shuffled_time_binned_DiscreteSpikes_200msbins.mat
+datafiles/C57_60_Octavius/Shuffled_time_binned_SpikeInf_200msbins.mat
+datafiles/C57_61_Priamus
+datafiles/C57_913_Qiu
+datafiles/C57_915_Serena
+
 library/.DS_Store
 library/__pycache__
 
@@ -13,10 +22,3 @@ scripts/serena.ipynb
 scripts/test_priamus.ipynb
 scripts/test_serena.ipynb
 scripts/test.ipynb
-
-datafiles/C57_59_Napoleon
-datafiles/C57_60_Octavius/Shuffled_time_binned_DiscreteSpikes_200msbins.mat
-datafiles/C57_60_Octavius/Shuffled_time_binned_SpikeInf_200msbins.mat
-datafiles/C57_61_Priamus
-datafiles/C57_913_Qiu
-datafiles/C57_915_Serena
