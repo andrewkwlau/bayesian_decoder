@@ -1,5 +1,9 @@
+.DS_Store
+
+library/.DS_Store
 library/__pycache__
 
+scripts/.DS_Store
 scripts/chance.ipynb
 scripts/napoleon.ipynb
 scripts/octavius.ipynb
