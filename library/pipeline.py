@@ -916,7 +916,10 @@ def run_results_chunks(
     mean_error = {paradigm:[] for paradigm in paradigms}
     for paradigm in paradigms:
         mean_accuracy[paradigm].append(np.nanmean(accuracy_allchunks[paradigm]))
+        mean_accuracy[paradigm] = mean_accuracy[paradigm][0]
         mean_error[paradigm].append(np.nanmean(errors_allchunks[paradigm]))
+        mean_error[paradigm] = mean_error[paradigm][0]
+        
 
     results = {
         'confusion_mtx': confusion_mtx_allchunks,
