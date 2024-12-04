@@ -17,14 +17,15 @@ Full dissertation:
 You can also see a demo of the decoding pipeline
 [here](scripts/demo.ipynb).
 
-### Confusion matrix in light
-![confusion_mtx_lgtlgt](./assets/savefig/C57_60_Octavius_confusion_mtx_lgtlgt.png)
-
-### Confusion matrix in light
-![confusion_mtx_drkdrk](./assets/savefig/C57_60_Octavius_confusion_mtx_drkdrk.png)
 
 ### Decoder Accuracy
-![accuracy](./assets/savefig/C57_60_Octavius_accuracy.png)
+![accuracy](./assets/savefig/accuracy_all.png)
 
 ### Decoder Errors
-![accuracy](./assets/savefig/C57_60_Octavius_errors.png)
+![errors](./assets/savefig/errors_all.png)
+
+### Sample confusion matrix in light
+![confusion_mtx_lgtlgt](./assets/savefig/C57_60_Octavius_confusion_mtx_lgtlgt.png)
+
+### Sample confusion matrix in dark
+![confusion_mtx_drkdrk](./assets/savefig/C57_60_Octavius_confusion_mtx_drkdrk.png)
