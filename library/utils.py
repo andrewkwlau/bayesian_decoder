@@ -607,3 +607,57 @@ def chunk_trials(data: np.ndarray, num_chunks: int) -> list:
         print(chunk.shape)
     
     return data_list
+
+
+def sort_and_chunk(
+        data: np.ndarray, 
+        position_mtx: np.ndarray, 
+        darktrials: np.ndarray, 
+        data_condition: str,
+        num_chunks: int,
+        discrete: bool = True
+) -> list:
+    """
+    Sort and chunk trials.
+    Equivalent to sort_trialstart() + chunk_trials() combined, plus the extra
+    option to chunk trials based on discrete start positions.
+    """
+    num_trials = data.shape[0]
+
+    pos_all = position_mtx
+    pos_light, pos_dark = split_lightdark(position_mtx, darktrials)
+
+    start_location = []
+    # Find start location of each trial and apppend them
+    for trial in range(num_trials):
+        if data_condition == 'all':
+            trial_start = pos_all[trial, np.where(~np.isnan(pos_all[trial]))[0][0]]
+        elif data_condition == 'light':
+            trial_start = pos_light[trial, np.where(~np.isnan(pos_light[trial]))[0][0]]
+        elif data_condition == 'dark':
+            trial_start = pos_dark[trial, np.where(~np.isnan(pos_dark[trial]))[0][0]]        
+        start_location.append(trial_start)      
+    
+    # Sort trial start location and generate new trial index
+    trial_start_sorted = np.sort(start_location)
+    new_trial_index = np.argsort(start_location)
+    
+    # Rearrange data with new trial index
+    for trial in range(num_trials):
+        data_sorted = data[new_trial_index]
+
+    # Chunk trials
+    # if trials have discete start location
+    if discrete == True:
+        data_list = []
+        for start_location in np.unique(trial_start_sorted):
+            # Find indices of trials that have the same start location
+            indices = np.where(trial_start_sorted == start_location)[0]
+            data_list.append(data_sorted[indices])
+    else:
+        data_list = np.array_split(data, num_chunks, axis=0)
+
+    for chunk in data_list:
+        print(chunk.shape)
+    
+    return data_list

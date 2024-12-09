@@ -280,6 +280,7 @@ def run_decoder_chunks(
         smoothfactor: float = 0.2, 
         scale: bool = True,
         uniformprior: bool = False,
+        discrete: bool = True,
         num_chunks: int = 10
 ) -> tuple:
     """
@@ -326,39 +327,25 @@ def run_decoder_chunks(
     # Run wrapper for getting tunning curves
     get_tuning_curves(mouse, x, tunnellength, smoothfactor)
 
-    # Sort trial start
+    # Sort and chunk trials in list
     print("Sorting trials and chunking trials.")
-    spikes_light = u.sort_trialstart(mouse.spikes_light, mouse.position_mtx, mouse.darktrials, 'light')
-    spikes_dark = u.sort_trialstart(mouse.spikes_dark, mouse.position_mtx, mouse.darktrials, 'dark')
-    fr_light = u.sort_trialstart(mouse.fr_light, mouse.position_mtx, mouse.darktrials, 'light')
-    fr_dark = u.sort_trialstart(mouse.fr_dark, mouse.position_mtx, mouse.darktrials, 'dark')
-    fr_light_smoothed = u.sort_trialstart(mouse.fr_light_smoothed, mouse.position_mtx, mouse.darktrials, 'light')
-    fr_dark_smoothed = u.sort_trialstart(mouse.fr_dark_smoothed, mouse.position_mtx, mouse.darktrials, 'dark')
-    fr_light_scaled = u.sort_trialstart(mouse.fr_light_scaled, mouse.position_mtx, mouse.darktrials, 'light')
-    fr_dark_scaled = u.sort_trialstart(mouse.fr_dark_scaled, mouse.position_mtx, mouse.darktrials, 'dark')
-    fr_light_scaled_smoothed = u.sort_trialstart(mouse.fr_light_scaled_smoothed, mouse.position_mtx, mouse.darktrials, 'light')
-    fr_dark_scaled_smoothed = u.sort_trialstart(mouse.fr_dark_scaled_smoothed, mouse.position_mtx, mouse.darktrials, 'dark')
-    trial_light = u.sort_trialstart(mouse.trial_light, mouse.position_mtx, mouse.darktrials, 'light')
-    trial_dark = u.sort_trialstart(mouse.trial_dark, mouse.position_mtx, mouse.darktrials, 'dark')
+    spikes_light_chunks = u.sort_and_chunk(mouse.spikes_light, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
+    spikes_dark_chunks = u.sort_and_chunk(mouse.spikes_dark, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
+    fr_light_chunks = u.sort_and_chunk(mouse.fr_light, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
+    fr_dark_chunks = u.sort_and_chunk(mouse.fr_dark, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
+    fr_light_smoothed_chunks = u.sort_and_chunk(mouse.fr_light_smoothed, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
+    fr_dark_smoothed_chunks = u.sort_and_chunk(mouse.fr_dark_smoothed, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
+    fr_light_scaled_chunks = u.sort_and_chunk(mouse.fr_light_scaled, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
+    fr_dark_scaled_chunks = u.sort_and_chunk(mouse.fr_dark_scaled, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
+    fr_light_scaled_smoothed_chunks = u.sort_and_chunk(mouse.fr_light_scaled_smoothed, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
+    fr_dark_scaled_smoothed_chunks = u.sort_and_chunk(mouse.fr_dark_scaled_smoothed, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
+    trial_light_chunks = u.sort_and_chunk(mouse.trial_light, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
+    trial_dark_chunks = u.sort_and_chunk(mouse.trial_dark, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
 
-    # Chunking trials in lists
-    spikes_light_chunks = u.chunk_trials(spikes_light, num_chunks)
-    spikes_dark_chunks = u.chunk_trials(spikes_dark, num_chunks)
-    fr_light_chunks = u.chunk_trials(fr_light, num_chunks)
-    fr_dark_chunks = u.chunk_trials(fr_dark, num_chunks)
-    fr_light_smoothed_chunks = u.chunk_trials(fr_light_smoothed, num_chunks)
-    fr_dark_smoothed_chunks = u.chunk_trials(fr_dark_smoothed, num_chunks)
-    fr_light_scaled_chunks = u.chunk_trials(fr_light_scaled, num_chunks)
-    fr_dark_scaled_chunks = u.chunk_trials(fr_dark_scaled, num_chunks)
-    fr_light_scaled_smoothed_chunks = u.chunk_trials(fr_light_scaled_smoothed, num_chunks)
-    fr_dark_scaled_smoothed_chunks = u.chunk_trials(fr_dark_scaled_smoothed, num_chunks)
-    trial_light_chunks = u.chunk_trials(trial_light, num_chunks)
-    trial_dark_chunks = u.chunk_trials(trial_dark, num_chunks)
 
     # Intialise output
     posterior_allchunks = []
     decoded_pos_allchunks = []
-
 
     # Decoder training set options
     print("7. Running decoder...")
@@ -451,6 +438,7 @@ def run_decoder_chance(
         smoothfactor: float = 0.2, 
         scale: bool = True,
         uniformprior: bool = False,
+        discrete: bool = True,
         num_chunks: int = 10
 ) -> tuple:
     """
@@ -520,35 +508,22 @@ def run_decoder_chance(
         print("6. Scaling firing rates.")
         fr_light_scaled, fr_dark_scaled = u.scale_firingrate(fr_light, fr_dark)
         fr_light_scaled_smoothed, fr_dark_scaled_smoothed = u.scale_firingrate(fr_light_smoothed, fr_dark_smoothed)
-
-        # Sort trial start
+       
+        # Sort and chunk trials in list
         print("7. Sorting trials and chunking trials.")
-        spikes_light = u.sort_trialstart(spikes_light, mouse.position_mtx, mouse.darktrials, 'light')
-        spikes_dark = u.sort_trialstart(spikes_dark, mouse.position_mtx, mouse.darktrials, 'dark')
-        fr_light = u.sort_trialstart(fr_light, mouse.position_mtx, mouse.darktrials, 'light')
-        fr_dark = u.sort_trialstart(fr_dark, mouse.position_mtx, mouse.darktrials, 'dark')
-        fr_light_smoothed = u.sort_trialstart(fr_light_smoothed, mouse.position_mtx, mouse.darktrials, 'light')
-        fr_dark_smoothed = u.sort_trialstart(fr_dark_smoothed, mouse.position_mtx, mouse.darktrials, 'dark')
-        fr_light_scaled = u.sort_trialstart(fr_light_scaled, mouse.position_mtx, mouse.darktrials, 'light')
-        fr_dark_scaled = u.sort_trialstart(fr_dark_scaled, mouse.position_mtx, mouse.darktrials, 'dark')
-        fr_light_scaled_smoothed = u.sort_trialstart(fr_light_scaled_smoothed, mouse.position_mtx, mouse.darktrials, 'light')
-        fr_dark_scaled_smoothed = u.sort_trialstart(fr_dark_scaled_smoothed, mouse.position_mtx, mouse.darktrials, 'dark')
-        trial_light = u.sort_trialstart(mouse.trial_light, mouse.position_mtx, mouse.darktrials, 'light')
-        trial_dark = u.sort_trialstart(mouse.trial_dark, mouse.position_mtx, mouse.darktrials, 'dark')
+        spikes_light_chunks = u.sort_and_chunk(spikes_light, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
+        spikes_dark_chunks = u.sort_and_chunk(spikes_dark, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
+        fr_light_chunks = u.sort_and_chunk(fr_light, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
+        fr_dark_chunks = u.sort_and_chunk(fr_dark, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
+        fr_light_smoothed_chunks = u.sort_and_chunk(fr_light_smoothed, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
+        fr_dark_smoothed_chunks = u.sort_and_chunk(fr_dark_smoothed, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
+        fr_light_scaled_chunks = u.sort_and_chunk(fr_light_scaled, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
+        fr_dark_scaled_chunks = u.sort_and_chunk(fr_dark_scaled, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
+        fr_light_scaled_smoothed_chunks = u.sort_and_chunk(fr_light_scaled_smoothed, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
+        fr_dark_scaled_smoothed_chunks = u.sort_and_chunk(fr_dark_scaled_smoothed, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
+        trial_light_chunks = u.sort_and_chunk(mouse.trial_light, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
+        trial_dark_chunks = u.sort_and_chunk(mouse.trial_dark, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
 
-        # Chunking trials in lists
-        spikes_light_chunks = u.chunk_trials(spikes_light, num_chunks)
-        spikes_dark_chunks = u.chunk_trials(spikes_dark, num_chunks)
-        fr_light_chunks = u.chunk_trials(fr_light, num_chunks)
-        fr_dark_chunks = u.chunk_trials(fr_dark, num_chunks)
-        fr_light_smoothed_chunks = u.chunk_trials(fr_light_smoothed, num_chunks)
-        fr_dark_smoothed_chunks = u.chunk_trials(fr_dark_smoothed, num_chunks)
-        fr_light_scaled_chunks = u.chunk_trials(fr_light_scaled, num_chunks)
-        fr_dark_scaled_chunks = u.chunk_trials(fr_dark_scaled, num_chunks)
-        fr_light_scaled_smoothed_chunks = u.chunk_trials(fr_light_scaled_smoothed, num_chunks)
-        fr_dark_scaled_smoothed_chunks = u.chunk_trials(fr_dark_scaled_smoothed, num_chunks)
-        trial_light_chunks = u.chunk_trials(trial_light, num_chunks)
-        trial_dark_chunks = u.chunk_trials(trial_dark, num_chunks)
 
         # Intialise output
         posterior_allchunks = []
