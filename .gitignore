@@ -12,6 +12,7 @@ library/__pycache__
 
 scripts/.DS_Store
 scripts/chance.ipynb
+scripts/main.ipynb
 scripts/napoleon.ipynb
 scripts/octavius.ipynb
 scripts/priamus.ipynb

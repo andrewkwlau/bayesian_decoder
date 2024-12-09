@@ -797,7 +797,8 @@ def run_results_chunks(
         posterior_allchunks: dict, 
         decoded_pos_allchunks: dict,
         num_pbins: int = 46,
-        num_chunks: int = 10
+        num_chunks: int = 10,
+        discrete: bool = True
 ) -> tuple:
     """
     Run confusion matrices, accuracy, and errors.
@@ -850,7 +851,8 @@ def run_results_chunks(
         mouse,
         decoded_pos_allchunks,
         num_pbins,
-        num_chunks
+        num_chunks,
+        discrete=discrete
     )
 
     paradigms = ['lgtlgt', 'drkdrk', 'lgtdrk', 'drklgt']
@@ -870,7 +872,8 @@ def run_results_chunks(
                 decoded_pos_allchunks[i][paradigm],
                 paradigm,
                 num_chunks,
-                i
+                i,
+                discrete=discrete
             )
             print()
             print("Errors chunk", i, paradigm, ":")
@@ -879,7 +882,8 @@ def run_results_chunks(
                 decoded_pos_allchunks[i][paradigm],
                 paradigm,
                 num_chunks,
-                i
+                i,
+                discrete=discrete
             )
             accuracy_allchunks[paradigm].append(accuracy)
             errors_allchunks[paradigm] += errors.tolist()
@@ -915,6 +919,7 @@ def run_results_chance(
         num_reps: int,
         num_pbins: int = 46,
         num_chunks: int = 10,
+        discrete: bool = True
 ):
     """
     """
@@ -940,7 +945,8 @@ def run_results_chance(
                     decoded_pos_allreps[rep][i][paradigm],
                     paradigm,
                     num_chunks,
-                    i
+                    i,
+                    discrete=discrete
                 )
                 print()
                 print("Errors, Rep", rep, "chunk", i, paradigm, ":")
@@ -949,7 +955,8 @@ def run_results_chance(
                     decoded_pos_allreps[rep][i][paradigm],
                     paradigm,
                     num_chunks,
-                    i
+                    i,
+                    discrete=discrete
                 )
                 accuracy_allchunks[paradigm].append(accuracy)
                 errors_allchunks[paradigm] += errors.tolist()
