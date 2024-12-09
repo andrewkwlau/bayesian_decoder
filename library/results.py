@@ -75,6 +75,7 @@ def generate_confusion_mtx_allchunks(
         decoded_pos_allchunks: list,
         num_pbins: int,
         num_chunks: int,
+        discrete: bool = True
 ) -> dict:
     """
     Generate one confusion matrix for all chunks. Y-axis: true positions, X-axis: decoded positions.
@@ -102,10 +103,8 @@ def generate_confusion_mtx_allchunks(
     """   
     # Chunk position matrix
     pos_light, pos_dark = u.split_lightdark(mouse.position_mtx_masked, mouse.darktrials)
-    pos_light_sorted = u.sort_trialstart(pos_light, mouse.position_mtx, mouse.darktrials, 'light')
-    pos_dark_sorted = u.sort_trialstart(pos_dark, mouse.position_mtx, mouse.darktrials, 'dark')
-    pos_light_chunks = u.chunk_trials(pos_light_sorted, num_chunks)
-    pos_dark_chunks = u.chunk_trials(pos_dark_sorted, num_chunks)
+    pos_light_chunks = u.sort_and_chunk(pos_light, mouse.position_mtx, mouse.darktrials, 'light', num_chunks, discrete=discrete)
+    pos_dark_chunks = u.sort_and_chunk(pos_dark, mouse.position_mtx, mouse.darktrials, 'dark', num_chunks, discrete=discrete)
 
     # Intialise confusion matrix for each train/test paradigm
     confusion_mtx_allchunks = {
@@ -169,7 +168,8 @@ def generate_confusion_mtx_perchunk(
         paradigm: str,
         num_pbins: int,
         num_chunks: int,
-        chunk_idx: int
+        chunk_idx: int,
+        discrete: bool = True
 ):
     """
     Generate confusion matrix for each chunk. Y-axis: true positions, X-axis: decoded positions.
@@ -204,12 +204,10 @@ def generate_confusion_mtx_perchunk(
     # Specify true position and predicted position
     pos_light, pos_dark = u.split_lightdark(mouse.position_mtx_masked, mouse.darktrials)
     if paradigm == 'lgtlgt' or paradigm == 'drklgt':
-        pos_light_sorted = u.sort_trialstart(pos_light, mouse.position_mtx, mouse.darktrials, 'light')
-        pos_light_chunks = u.chunk_trials(pos_light_sorted, num_chunks)
+        pos_light_chunks = u.sort_and_chunk(pos_light, mouse.position_mtx, mouse.darktrials, 'light', num_chunks, discrete=discrete)
         true = pos_light_chunks[chunk_idx]
     elif paradigm == 'drkdrk' or paradigm == 'lgtdrk':
-        pos_dark_sorted = u.sort_trialstart(pos_dark, mouse.position_mtx, mouse.darktrials, 'dark')
-        pos_dark_chunks = u.chunk_trials(pos_dark_sorted, num_chunks)
+        pos_dark_chunks = u.sort_and_chunk(pos_dark, mouse.position_mtx, mouse.darktrials, 'dark', num_chunks, discrete=discrete)
         true = pos_dark_chunks[chunk_idx]
     pred = decoded_pos_chunk
         
@@ -289,7 +287,8 @@ def compute_accuracy_chunk(
         decoded_pos_chunk: np.ndarray,
         paradigm: str,
         num_chunks: int,
-        chunk_idx: int
+        chunk_idx: int,
+        discrete: bool = True
 ) -> float:
     """
     Compute accuracy rate for each chunk of decoded position over non-NaN true position.
@@ -319,10 +318,8 @@ def compute_accuracy_chunk(
 
     # Chunk position matrix
     pos_light, pos_dark = u.split_lightdark(mouse.position_mtx_masked, mouse.darktrials)
-    pos_light_sorted = u.sort_trialstart(pos_light, mouse.position_mtx, mouse.darktrials, 'light')
-    pos_dark_sorted = u.sort_trialstart(pos_dark, mouse.position_mtx, mouse.darktrials, 'dark')
-    pos_light_chunks = u.chunk_trials(pos_light_sorted, num_chunks)
-    pos_dark_chunks = u.chunk_trials(pos_dark_sorted, num_chunks)
+    pos_light_chunks = u.sort_and_chunk(pos_light, mouse.position_mtx, mouse.darktrials, 'light', num_chunks, discrete=discrete)
+    pos_dark_chunks = u.sort_and_chunk(pos_dark, mouse.position_mtx, mouse.darktrials, 'dark', num_chunks, discrete=discrete)
 
     # Specify true position
     if paradigm == 'lgtlgt' or paradigm == 'drklgt':  
@@ -409,7 +406,8 @@ def compute_errors_chunk(
         decoded_pos_chunk: np.ndarray, 
         paradigm: str,
         num_chunks: int,
-        chunk_idx: int
+        chunk_idx: int,
+        discrete: bool = True
 ) -> tuple:
     """
     Compute errors between decoded position and true position:
@@ -441,10 +439,8 @@ def compute_errors_chunk(
     """
     # Chunk position matrix
     pos_light, pos_dark = u.split_lightdark(mouse.position_mtx_masked, mouse.darktrials)
-    pos_light_sorted = u.sort_trialstart(pos_light, mouse.position_mtx, mouse.darktrials, 'light')
-    pos_dark_sorted = u.sort_trialstart(pos_dark, mouse.position_mtx, mouse.darktrials, 'dark')
-    pos_light_chunks = u.chunk_trials(pos_light_sorted, num_chunks)
-    pos_dark_chunks = u.chunk_trials(pos_dark_sorted, num_chunks)
+    pos_light_chunks = u.sort_and_chunk(pos_light, mouse.position_mtx, mouse.darktrials, 'light', num_chunks, discrete=discrete)
+    pos_dark_chunks = u.sort_and_chunk(pos_dark, mouse.position_mtx, mouse.darktrials, 'dark', num_chunks, discrete=discrete)
 
     # Specify true position
     if paradigm == 'lgtlgt' or paradigm == 'drklgt':  
