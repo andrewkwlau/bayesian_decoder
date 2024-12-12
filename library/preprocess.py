@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def preprocess_data(loaded_data):
+def preprocess_data(loaded_data, remove_punished=False):
     """
     Preprocess data with various steps:
     - align axes across data matrices
@@ -19,6 +19,7 @@ def preprocess_data(loaded_data):
             - position_mtx
             - darktrials
             - deltrials
+            - punished_trials
             - spikeprob_shuffled
             - spikes_shuffled
 
@@ -34,27 +35,45 @@ def preprocess_data(loaded_data):
                 (Trial) Indices of light/dark trials. Light = 0, Dark = 1.
             - deltrials (ndarray):
                 (Trial) Indices of deleted trials.
+            - punished_trials (ndarray):
+                (Trial) Indices of 
             - spikeprob_shuffled (list)
             - spikes_shuffled (list)
     """
-    spikeprob, spikes, position_mtx, darktrials, deltrials, spikeprob_shuffled, spikes_shuffled = loaded_data
+    spikeprob, spikes, position_mtx, darktrials, deltrials, punished_trials, spikeprob_shuffled, spikes_shuffled = loaded_data
 
     # Align axes
     spikeprob = align_axes(spikeprob)
     spikes = align_axes(spikes)
     darktrials = align_axes(darktrials, dark=True)
+
     # Format position index to python
     position_mtx, deltrials = format_pos_idx(position_mtx, deltrials)
+
+    # Flatten punished trials
+    punished_trials = punished_trials.flatten()
+
     # Remove deleted trials
     spikeprob = remove_deltrials(spikeprob, deltrials)
     spikes = remove_deltrials(spikes, deltrials)
     position_mtx = remove_deltrials(position_mtx, deltrials)
     darktrials = remove_deltrials(darktrials, deltrials)
+    punished_trials = remove_deltrials(punished_trials, deltrials)
+
+    # Remove punished trials
+    if remove_punished == True:
+        spikeprob = remove_punished_trials(spikeprob, punished_trials)
+        spikes = remove_punished_trials(spikes, punished_trials)
+        position_mtx = remove_punished_trials(position_mtx, punished_trials)
+        darktrials = remove_punished_trials(darktrials, punished_trials)
+
     # Remove non-NaN neurons
     spikeprob = remove_nonnan_neuron(spikeprob)
     spikes = remove_nonnan_neuron(spikes)
+
     # Match NaN mask
     spikes = match_nan_from_spikeprob(spikeprob, spikes)
+
     # Remove position matrix artefacts
     position_mtx = remove_pos_artefacts(position_mtx)
 
@@ -66,13 +85,17 @@ def preprocess_data(loaded_data):
         # Remove deleted trials
         spikeprob_shuffled[rep] = remove_deltrials(spikeprob_shuffled[rep], deltrials)
         spikes_shuffled[rep] = remove_deltrials(spikes_shuffled[rep], deltrials)
+        # Remove punished trials
+        if remove_punished == True:
+            spikeprob_shuffled[rep] = remove_punished_trials(spikeprob_shuffled[rep], punished_trials)
+            spikes_shuffled[rep] = remove_punished_trials(spikes_shuffled[rep], punished_trials)
         # Remove non-NaN neurons
         spikeprob_shuffled[rep] = remove_nonnan_neuron(spikeprob_shuffled[rep])
         spikes_shuffled[rep] = remove_nonnan_neuron(spikes_shuffled[rep])
         # Match NaN mask
         # spikes_shuffled[rep] = match_nan_from_spikeprob(spikeprob_shuffled[rep], spikes_shuffled[rep])
 
-    return spikeprob, spikes, position_mtx, darktrials, deltrials, spikeprob_shuffled, spikes_shuffled
+    return spikeprob, spikes, position_mtx, darktrials, deltrials, punished_trials, spikeprob_shuffled, spikes_shuffled
 
 
 def align_axes(data, dark = False):
@@ -112,6 +135,15 @@ def remove_deltrials(data, deltrials):
     Remove deleted trials.
     """
     data = np.delete(data, deltrials, axis=0)
+    return data
+
+
+def remove_punished_trials(data, punished_trials):
+    """
+    Remove punished trials.
+    """
+    trials_to_remove = np.where(punished_trials==1)[0]
+    data = np.delete(data, trials_to_remove, axis=0)
     return data
 
 
