@@ -641,6 +641,7 @@ def sort_and_chunk(
     # Sort trial start location and generate new trial index
     trial_start_sorted = np.sort(start_location)
     new_trial_index = np.argsort(start_location)
+    print(trial_start_sorted)
     
     # Rearrange data with new trial index
     for trial in range(num_trials):
@@ -655,7 +656,7 @@ def sort_and_chunk(
             indices = np.where(trial_start_sorted == start_location)[0]
             data_list.append(data_sorted[indices])
     else:
-        data_list = np.array_split(data, num_chunks, axis=0)
+        data_list = np.array_split(data_sorted, num_chunks, axis=0)
 
     for chunk in data_list:
         print(chunk.shape)
