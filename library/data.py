@@ -34,6 +34,9 @@ def load_data(mouse_ID, tau=None):
     - target_positions
     - darktrial_raw
     - del_trials
+    - punished_trials
+    - Shuffled_time_binned_SpikeInf
+    - Shuffled_time_binned_DiscreteSpikes
 
     Args:
         mouse_ID
@@ -44,9 +47,8 @@ def load_data(mouse_ID, tau=None):
         time_binned_SpikeInf = load_matfiles("../datafiles/"+ mouse_ID +"/time_binned_SpikeInf.mat")
         time_binned_DiscreteSpikes = load_matfiles("../datafiles/"+ mouse_ID +"/time_binned_DiscreteSpikes.mat")
         target_positions = load_matfiles("../datafiles/"+ mouse_ID +"/target_positions.mat")
-        Shuffled_time_binned_SpikeInf = load_matfiles("../datafiles/"+ mouse_ID +"/Shuffled_time_binned_SpikeInf.mat")
-        Shuffled_time_binned_DiscreteSpikes = load_matfiles("../datafiles/"+ mouse_ID +"/Shuffled_time_binned_DiscreteSpikes.mat")
-
+        Shuffled_time_binned_SpikeInf = load_matfiles("../datafiles/"+ mouse_ID +"/Shuffled_time_binned_SpikeInf_200msbins.mat")
+        Shuffled_time_binned_DiscreteSpikes = load_matfiles("../datafiles/"+ mouse_ID +"/Shuffled_time_binned_DiscreteSpikes_200msbins.mat")
     elif tau >= 0.2:
         ms = str(int(tau * 1000))
         time_binned_SpikeInf = load_matfiles("../datafiles/"+ mouse_ID +"/time_binned_SpikeInf_"+ ms +"msbins.mat")
@@ -57,12 +59,14 @@ def load_data(mouse_ID, tau=None):
                
     darktrial_raw = load_matfiles("../datafiles/"+ mouse_ID +"/darktrial_raw.mat")
     del_trials = load_matfiles("../datafiles/"+ mouse_ID +"/del_trials.mat")
+    punished_trials = load_matfiles("../datafiles/"+ mouse_ID +"/punished_trials.mat")
     
     # Extracting data matrix from dictionary
     spikeprob = time_binned_SpikeInf['time_Caimg']
     spikes = time_binned_DiscreteSpikes['time_Caimg']
     position_mtx = target_positions['position_tbins']
     deltrials = del_trials['del_trials']
+    punished_trials = punished_trials['punished_trial']
     spikeprob_shuffled = Shuffled_time_binned_SpikeInf['Shuffled_time_Caimg']
     spikes_shuffled = Shuffled_time_binned_DiscreteSpikes['Shuffled_time_Caimg']
 
@@ -74,7 +78,7 @@ def load_data(mouse_ID, tau=None):
     else:
         darktrials = darktrial_raw['darktrial']
 
-    return spikeprob, spikes, position_mtx, darktrials, deltrials, spikeprob_shuffled, spikes_shuffled
+    return spikeprob, spikes, position_mtx, darktrials, deltrials, punished_trials, spikeprob_shuffled, spikes_shuffled
 
 
 @dataclass
@@ -86,6 +90,7 @@ class MouseData:
     position_mtx: np.ndarray
     darktrials: np.ndarray
     deltrials: np.ndarray
+    punished_trials: np.ndarray
     spikeprob_shuffled: list
     spikes_shuffled: list
 
