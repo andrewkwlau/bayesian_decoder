@@ -51,21 +51,17 @@ def preprocess_data(loaded_data, remove_punished=False):
     position_mtx, deltrials = format_pos_idx(position_mtx, deltrials)
 
     # Flatten punished trials
-    punished_trials = punished_trials.flatten()
+    punished_trials = np.where(punished_trials.flatten()==1)[0]
 
-    # Remove deleted trials
-    spikeprob = remove_deltrials(spikeprob, deltrials)
-    spikes = remove_deltrials(spikes, deltrials)
-    position_mtx = remove_deltrials(position_mtx, deltrials)
-    darktrials = remove_deltrials(darktrials, deltrials)
-    punished_trials = remove_deltrials(punished_trials, deltrials)
-
-    # Remove punished trials
+    # Remove deleted trials and punished trials
     if remove_punished == True:
-        spikeprob = remove_punished_trials(spikeprob, punished_trials)
-        spikes = remove_punished_trials(spikes, punished_trials)
-        position_mtx = remove_punished_trials(position_mtx, punished_trials)
-        darktrials = remove_punished_trials(darktrials, punished_trials)
+        trials_to_remove = np.unique(np.concatenate((deltrials, punished_trials)))
+    else:
+        trials_to_remove = deltrials
+    spikeprob = remove_trials(spikeprob, trials_to_remove)
+    spikes = remove_trials(spikes, trials_to_remove)
+    position_mtx = remove_trials(position_mtx, trials_to_remove)
+    darktrials = remove_trials(darktrials, trials_to_remove)
 
     # Remove non-NaN neurons
     spikeprob = remove_nonnan_neuron(spikeprob)
@@ -82,13 +78,9 @@ def preprocess_data(loaded_data, remove_punished=False):
         # Align axes
         spikeprob_shuffled[rep] = align_axes(spikeprob_shuffled[rep])
         spikes_shuffled[rep] = align_axes(spikes_shuffled[rep])
-        # Remove deleted trials
-        spikeprob_shuffled[rep] = remove_deltrials(spikeprob_shuffled[rep], deltrials)
-        spikes_shuffled[rep] = remove_deltrials(spikes_shuffled[rep], deltrials)
-        # Remove punished trials
-        if remove_punished == True:
-            spikeprob_shuffled[rep] = remove_punished_trials(spikeprob_shuffled[rep], punished_trials)
-            spikes_shuffled[rep] = remove_punished_trials(spikes_shuffled[rep], punished_trials)
+        # Remove deleted and punished trials
+        spikeprob_shuffled[rep] = remove_trials(spikeprob_shuffled[rep], trials_to_remove)
+        spikes_shuffled[rep] = remove_trials(spikes_shuffled[rep], trials_to_remove)
         # Remove non-NaN neurons
         spikeprob_shuffled[rep] = remove_nonnan_neuron(spikeprob_shuffled[rep])
         spikes_shuffled[rep] = remove_nonnan_neuron(spikes_shuffled[rep])
@@ -130,19 +122,10 @@ def format_pos_idx(position_mtx, deltrials):
     return position_mtx, deltrials
 
 
-def remove_deltrials(data, deltrials):
+def remove_trials(data, trials_to_remove):
     """
-    Remove deleted trials.
+    Remove deleted trials (and punished trials).
     """
-    data = np.delete(data, deltrials, axis=0)
-    return data
-
-
-def remove_punished_trials(data, punished_trials):
-    """
-    Remove punished trials.
-    """
-    trials_to_remove = np.where(punished_trials==1)[0]
     data = np.delete(data, trials_to_remove, axis=0)
     return data
 
