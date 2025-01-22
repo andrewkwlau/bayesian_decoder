@@ -60,15 +60,15 @@ def get_tuning_curves(
         mouse.firstx_pos
     )
     mouse.spikes_masked = u.mask_spikes(mouse.spikes, mouse.mask)
-    mouse.spikes_light, mouse.spikes_dark = u.split_lightdark(mouse.spikes_masked, mouse.darktrials)
+    mouse.spikes_lgt, mouse.spikes_drk = u.split_lightdark(mouse.spikes_masked, mouse.darktrials)
     mouse.spikeprob_masked = u.mask_spikes(mouse.spikeprob, mouse.mask)
-    mouse.spikeprob_light, mouse.spikeprob_dark = u.split_lightdark(mouse.spikeprob_masked, mouse.darktrials)
+    mouse.spikeprob_lgt, mouse.spikeprob_drk = u.split_lightdark(mouse.spikeprob_masked, mouse.darktrials)
 
 
     # Get trial length
     print("2. Getting trial length.")
-    mouse.trial_length = u.get_trial_length(mouse.position_mtx_masked)
-    mouse.trial_light, mouse.trial_dark = u.split_lightdark(mouse.trial_length, mouse.darktrials)
+    mouse.triallength = u.get_trial_length(mouse.position_mtx_masked)
+    mouse.triallength_lgt, mouse.triallength_drk = u.split_lightdark(mouse.triallength, mouse.darktrials)
 
 
     # Smooth data with Gaussian filter
@@ -111,32 +111,32 @@ def get_tuning_curves(
 
     # Split data into light and dark trials
     print("5. Splitting light vs dark.")
-    mouse.fr_light, mouse.fr_dark = u.split_lightdark(
+    mouse.fr_lgt, mouse.fr_drk = u.split_lightdark(
         mouse.fr, 
         mouse.darktrials
     )
-    mouse.fr_light_smoothed, mouse.fr_dark_smoothed = u.split_lightdark(
+    mouse.fr_lgt_smoothed, mouse.fr_drk_smoothed = u.split_lightdark(
         mouse.fr_smoothed, 
         mouse.darktrials
     )  
-    mouse.spikeprob_pbin_light, mouse.spikeprob_pbin_dark = u.split_lightdark(
+    mouse.spikeprob_pbin_lgt, mouse.spikeprob_pbin_drk = u.split_lightdark(
         mouse.spikeprob_pbin,
         mouse.darktrials
     )
-    mouse.spikeprob_pbin_smoothed_light, mouse.spikeprob_pbin_smoothed_dark = u.split_lightdark(
+    mouse.spikeprob_pbin_smoothed_lgt, mouse.spikeprob_pbin_smoothed_drk = u.split_lightdark(
         mouse.spikeprob_pbin_smoothed,
         mouse.darktrials
     )
 
     # Scale firing rates
     print("6. Scaling firing rates.")
-    mouse.fr_light_scaled, mouse.fr_dark_scaled = u.scale_firingrate(
-        mouse.fr_light, 
-        mouse.fr_dark
+    mouse.fr_lgt_scaled, mouse.fr_drk_scaled = u.scale_firingrate(
+        mouse.fr_lgt, 
+        mouse.fr_drk
     )
-    mouse.fr_light_scaled_smoothed, mouse.fr_dark_scaled_smoothed = u.scale_firingrate(
-        mouse.fr_light_smoothed, 
-        mouse.fr_dark_smoothed
+    mouse.fr_lgt_scaled_smoothed, mouse.fr_drk_scaled_smoothed = u.scale_firingrate(
+        mouse.fr_lgt_smoothed, 
+        mouse.fr_drk_smoothed
     )
 
 
@@ -211,7 +211,7 @@ def get_tuning_curves_npxl(
         mouse.fr_lgt_posbinned, 
         mouse.fr_drk_posbinned
     )
-    
+
 
 def run_decoder(
         mouse: d.MouseData,
@@ -271,23 +271,23 @@ def run_decoder(
     # Decoder training set options
     print("7. Running decoder...")
     if smooth == True:
-        training_lgtlgt = mouse.fr_light_smoothed
-        training_drkdrk = mouse.fr_dark_smoothed
+        training_lgtlgt = mouse.fr_lgt_smoothed
+        training_drkdrk = mouse.fr_drk_smoothed
         if scale == True:
-            training_lgtdrk = mouse.fr_light_scaled_smoothed
-            training_drklgt = mouse.fr_dark_scaled_smoothed
+            training_lgtdrk = mouse.fr_lgt_scaled_smoothed
+            training_drklgt = mouse.fr_drk_scaled_smoothed
         elif scale == False:
-            training_lgtdrk = mouse.fr_light_smoothed
-            training_drklgt = mouse.fr_dark_smoothed
+            training_lgtdrk = mouse.fr_lgt_smoothed
+            training_drklgt = mouse.fr_drk_smoothed
     elif smooth == False:
-        training_lgtlgt = mouse.fr_light
-        training_drkdrk = mouse.fr_dark
+        training_lgtlgt = mouse.fr_lgt
+        training_drkdrk = mouse.fr_drk
         if scale == True:
-            training_lgtdrk = mouse.fr_light_scaled
-            training_drklgt = mouse.fr_dark_scaled
+            training_lgtdrk = mouse.fr_lgt_scaled
+            training_drklgt = mouse.fr_drk_scaled
         elif scale == False:
-            training_lgtdrk = mouse.fr_light
-            training_drklgt = mouse.fr_dark
+            training_lgtdrk = mouse.fr_lgt
+            training_drklgt = mouse.fr_drk
     
 
     # Decoder with options for smoothing and scaling of firing rates
@@ -295,7 +295,7 @@ def run_decoder(
     posterior_lgtlgt, decoded_pos_lgtlgt = b.bayesian_decoder(
             mouse,
             training_lgtlgt,
-            mouse.spikes_light,
+            mouse.spikes_lgt,
             num_pbins,
             uniformprior
         )
@@ -304,7 +304,7 @@ def run_decoder(
     posterior_drkdrk, decoded_pos_drkdrk = b.bayesian_decoder(
             mouse,
             training_drkdrk,
-            mouse.spikes_dark,
+            mouse.spikes_drk,
             num_pbins,
             uniformprior
         )
@@ -313,7 +313,7 @@ def run_decoder(
     posterior_lgtdrk, decoded_pos_lgtdrk = b.bayesian_decoder(
         mouse,
         training_lgtdrk,
-        mouse.spikes_dark,
+        mouse.spikes_drk,
         num_pbins,
         uniformprior
     )
@@ -322,7 +322,7 @@ def run_decoder(
     posterior_drklgt, decoded_pos_drklgt = b.bayesian_decoder(
         mouse,
         training_drklgt,
-        mouse.spikes_light,
+        mouse.spikes_lgt,
         num_pbins,
         uniformprior
     )
@@ -402,18 +402,18 @@ def run_decoder_chunks(
 
     # Sort and chunk trials in list
     print("Sorting trials and chunking trials.")
-    spikes_light_chunks = u.sort_and_chunk(mouse.spikes_light, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
-    spikes_dark_chunks = u.sort_and_chunk(mouse.spikes_dark, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
-    fr_light_chunks = u.sort_and_chunk(mouse.fr_light, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
-    fr_dark_chunks = u.sort_and_chunk(mouse.fr_dark, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
-    fr_light_smoothed_chunks = u.sort_and_chunk(mouse.fr_light_smoothed, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
-    fr_dark_smoothed_chunks = u.sort_and_chunk(mouse.fr_dark_smoothed, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
-    fr_light_scaled_chunks = u.sort_and_chunk(mouse.fr_light_scaled, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
-    fr_dark_scaled_chunks = u.sort_and_chunk(mouse.fr_dark_scaled, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
-    fr_light_scaled_smoothed_chunks = u.sort_and_chunk(mouse.fr_light_scaled_smoothed, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
-    fr_dark_scaled_smoothed_chunks = u.sort_and_chunk(mouse.fr_dark_scaled_smoothed, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
-    trial_light_chunks = u.sort_and_chunk(mouse.trial_light, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
-    trial_dark_chunks = u.sort_and_chunk(mouse.trial_dark, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
+    spikes_lgt_chunks = u.sort_and_chunk(mouse.spikes_lgt, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
+    spikes_drk_chunks = u.sort_and_chunk(mouse.spikes_drk, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
+    fr_lgt_chunks = u.sort_and_chunk(mouse.fr_lgt, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
+    fr_drk_chunks = u.sort_and_chunk(mouse.fr_drk, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
+    fr_lgt_smoothed_chunks = u.sort_and_chunk(mouse.fr_lgt_smoothed, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
+    fr_drk_smoothed_chunks = u.sort_and_chunk(mouse.fr_drk_smoothed, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
+    fr_lgt_scaled_chunks = u.sort_and_chunk(mouse.fr_lgt_scaled, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
+    fr_drk_scaled_chunks = u.sort_and_chunk(mouse.fr_drk_scaled, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
+    fr_lgt_scaled_smoothed_chunks = u.sort_and_chunk(mouse.fr_lgt_scaled_smoothed, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
+    fr_drk_scaled_smoothed_chunks = u.sort_and_chunk(mouse.fr_drk_scaled_smoothed, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
+    triallength_lgt_chunks = u.sort_and_chunk(mouse.triallength_lgt, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
+    triallength_drk_chunks = u.sort_and_chunk(mouse.triallength_drk, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
 
 
     # Intialise output
@@ -423,23 +423,23 @@ def run_decoder_chunks(
     # Decoder training set options
     print("7. Running decoder...")
     if smooth == True:
-        training_lgtlgt = fr_light_smoothed_chunks
-        training_drkdrk = fr_dark_smoothed_chunks
+        training_lgtlgt = fr_lgt_smoothed_chunks
+        training_drkdrk = fr_drk_smoothed_chunks
         if scale == True:
-            training_lgtdrk = fr_light_scaled_smoothed_chunks
-            training_drklgt = fr_dark_scaled_smoothed_chunks
+            training_lgtdrk = fr_lgt_scaled_smoothed_chunks
+            training_drklgt = fr_drk_scaled_smoothed_chunks
         elif scale == False:
-            training_lgtdrk = fr_light_smoothed_chunks
-            training_drklgt = fr_dark_smoothed_chunks
+            training_lgtdrk = fr_lgt_smoothed_chunks
+            training_drklgt = fr_drk_smoothed_chunks
     elif smooth == False:
-        training_lgtlgt = fr_light_chunks
-        training_drkdrk = fr_dark_chunks
+        training_lgtlgt = fr_lgt_chunks
+        training_drkdrk = fr_drk_chunks
         if scale == True:
-            training_lgtdrk = fr_light_scaled_chunks
-            training_drklgt = fr_dark_scaled_chunks
+            training_lgtdrk = fr_lgt_scaled_chunks
+            training_drklgt = fr_drk_scaled_chunks
         elif scale == False:
-            training_lgtdrk = fr_light_chunks
-            training_drklgt = fr_dark_chunks
+            training_lgtdrk = fr_lgt_chunks
+            training_drklgt = fr_drk_chunks
 
 
     # Loop through each chunk
@@ -448,8 +448,8 @@ def run_decoder_chunks(
         posterior_lgtlgt, decoded_pos_lgtlgt = b.bayesian_decoder_chunks(
             mouse,
             training_lgtlgt[i],
-            spikes_light_chunks[i],
-            trial_light_chunks[i],
+            spikes_lgt_chunks[i],
+            triallength_lgt_chunks[i],
             num_pbins,
             uniformprior
         )
@@ -457,8 +457,8 @@ def run_decoder_chunks(
         posterior_drkdrk, decoded_pos_drkdrk = b.bayesian_decoder_chunks(
             mouse,
             training_drkdrk[i],
-            spikes_dark_chunks[i],
-            trial_dark_chunks[i],
+            spikes_drk_chunks[i],
+            triallength_drk_chunks[i],
             num_pbins,
             uniformprior
         )
@@ -466,8 +466,8 @@ def run_decoder_chunks(
         posterior_lgtdrk, decoded_pos_lgtdrk = b.bayesian_decoder_chunks(
             mouse,
             training_lgtdrk[i],
-            spikes_dark_chunks[i],
-            trial_dark_chunks[i],
+            spikes_drk_chunks[i],
+            triallength_drk_chunks[i],
             num_pbins,
             uniformprior
         )
@@ -475,8 +475,8 @@ def run_decoder_chunks(
         posterior_drklgt, decoded_pos_drklgt = b.bayesian_decoder_chunks(
             mouse,
             training_drklgt[i],
-            spikes_light_chunks[i],
-            trial_light_chunks[i],
+            spikes_lgt_chunks[i],
+            triallength_lgt_chunks[i],
             num_pbins,
             uniformprior
         )
@@ -529,8 +529,8 @@ def run_decoder_chance(
         mouse.rewardzone, 
         mouse.firstx_pos
     )
-    mouse.trial_length = u.get_trial_length(mouse.position_mtx_masked)
-    mouse.trial_light, mouse.trial_dark = u.split_lightdark(mouse.trial_length, mouse.darktrials)
+    mouse.triallength = u.get_trial_length(mouse.position_mtx_masked)
+    mouse.triallength_lgt, mouse.triallength_drk = u.split_lightdark(mouse.triallength, mouse.darktrials)
 
     for rep in range(num_reps):
         print("Rep ", rep, " start...")
@@ -548,7 +548,7 @@ def run_decoder_chance(
             mouse.firstx_pos
         )
         spikes_masked = u.mask_spikes(spikes, mask)
-        spikes_light, spikes_dark = u.split_lightdark(spikes_masked, mouse.darktrials)
+        spikes_lgt, spikes_drk = u.split_lightdark(spikes_masked, mouse.darktrials)
 
         # Smooth data with Gaussian filter
         print("3. Smoothing spikes.")
@@ -574,28 +574,28 @@ def run_decoder_chance(
 
         # Split data into light and dark trials
         print("5. Splitting light vs dark.")
-        fr_light, fr_dark = u.split_lightdark(fr, mouse.darktrials)
-        fr_light_smoothed, fr_dark_smoothed = u.split_lightdark(fr_smoothed, mouse.darktrials)
+        fr_lgt, fr_drk = u.split_lightdark(fr, mouse.darktrials)
+        fr_lgt_smoothed, fr_drk_smoothed = u.split_lightdark(fr_smoothed, mouse.darktrials)
 
         # Scale firing rates
         print("6. Scaling firing rates.")
-        fr_light_scaled, fr_dark_scaled = u.scale_firingrate(fr_light, fr_dark)
-        fr_light_scaled_smoothed, fr_dark_scaled_smoothed = u.scale_firingrate(fr_light_smoothed, fr_dark_smoothed)
+        fr_lgt_scaled, fr_drk_scaled = u.scale_firingrate(fr_lgt, fr_drk)
+        fr_lgt_scaled_smoothed, fr_drk_scaled_smoothed = u.scale_firingrate(fr_lgt_smoothed, fr_drk_smoothed)
        
         # Sort and chunk trials in list
         print("7. Sorting trials and chunking trials.")
-        spikes_light_chunks = u.sort_and_chunk(spikes_light, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
-        spikes_dark_chunks = u.sort_and_chunk(spikes_dark, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
-        fr_light_chunks = u.sort_and_chunk(fr_light, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
-        fr_dark_chunks = u.sort_and_chunk(fr_dark, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
-        fr_light_smoothed_chunks = u.sort_and_chunk(fr_light_smoothed, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
-        fr_dark_smoothed_chunks = u.sort_and_chunk(fr_dark_smoothed, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
-        fr_light_scaled_chunks = u.sort_and_chunk(fr_light_scaled, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
-        fr_dark_scaled_chunks = u.sort_and_chunk(fr_dark_scaled, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
-        fr_light_scaled_smoothed_chunks = u.sort_and_chunk(fr_light_scaled_smoothed, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
-        fr_dark_scaled_smoothed_chunks = u.sort_and_chunk(fr_dark_scaled_smoothed, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
-        trial_light_chunks = u.sort_and_chunk(mouse.trial_light, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
-        trial_dark_chunks = u.sort_and_chunk(mouse.trial_dark, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
+        spikes_lgt_chunks = u.sort_and_chunk(spikes_lgt, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
+        spikes_drk_chunks = u.sort_and_chunk(spikes_drk, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
+        fr_lgt_chunks = u.sort_and_chunk(fr_lgt, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
+        fr_drk_chunks = u.sort_and_chunk(fr_drk, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
+        fr_lgt_smoothed_chunks = u.sort_and_chunk(fr_lgt_smoothed, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
+        fr_drk_smoothed_chunks = u.sort_and_chunk(fr_drk_smoothed, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
+        fr_lgt_scaled_chunks = u.sort_and_chunk(fr_lgt_scaled, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
+        fr_drk_scaled_chunks = u.sort_and_chunk(fr_drk_scaled, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
+        fr_lgt_scaled_smoothed_chunks = u.sort_and_chunk(fr_lgt_scaled_smoothed, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
+        fr_drk_scaled_smoothed_chunks = u.sort_and_chunk(fr_drk_scaled_smoothed, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
+        triallength_lgt_chunks = u.sort_and_chunk(mouse.triallength_lgt, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
+        triallength_drk_chunks = u.sort_and_chunk(mouse.triallength_drk, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
 
 
         # Intialise output
@@ -605,23 +605,23 @@ def run_decoder_chance(
         # Decoder training set options
         print("8. Running decoder...")
         if smooth == True:
-            training_lgtlgt = fr_light_smoothed_chunks
-            training_drkdrk = fr_dark_smoothed_chunks
+            training_lgtlgt = fr_lgt_smoothed_chunks
+            training_drkdrk = fr_drk_smoothed_chunks
             if scale == True:
-                training_lgtdrk = fr_light_scaled_smoothed_chunks
-                training_drklgt = fr_dark_scaled_smoothed_chunks
+                training_lgtdrk = fr_lgt_scaled_smoothed_chunks
+                training_drklgt = fr_drk_scaled_smoothed_chunks
             elif scale == False:
-                training_lgtdrk = fr_light_smoothed_chunks
-                training_drklgt = fr_dark_smoothed_chunks
+                training_lgtdrk = fr_lgt_smoothed_chunks
+                training_drklgt = fr_drk_smoothed_chunks
         elif smooth == False:
-            training_lgtlgt = fr_light_chunks
-            training_drkdrk = fr_dark_chunks
+            training_lgtlgt = fr_lgt_chunks
+            training_drkdrk = fr_drk_chunks
             if scale == True:
-                training_lgtdrk = fr_light_scaled_chunks
-                training_drklgt = fr_dark_scaled_chunks
+                training_lgtdrk = fr_lgt_scaled_chunks
+                training_drklgt = fr_drk_scaled_chunks
             elif scale == False:
-                training_lgtdrk = fr_light_chunks
-                training_drklgt = fr_dark_chunks
+                training_lgtdrk = fr_lgt_chunks
+                training_drklgt = fr_drk_chunks
 
 
         # Loop through each chunk
@@ -630,8 +630,8 @@ def run_decoder_chance(
             posterior_lgtlgt, decoded_pos_lgtlgt = b.bayesian_decoder_chunks(
                 mouse,
                 training_lgtlgt[i],
-                spikes_light_chunks[i],
-                trial_light_chunks[i],
+                spikes_lgt_chunks[i],
+                triallength_lgt_chunks[i],
                 num_pbins,
                 uniformprior
             )
@@ -639,8 +639,8 @@ def run_decoder_chance(
             posterior_drkdrk, decoded_pos_drkdrk = b.bayesian_decoder_chunks(
                 mouse,
                 training_drkdrk[i],
-                spikes_dark_chunks[i],
-                trial_dark_chunks[i],
+                spikes_drk_chunks[i],
+                triallength_drk_chunks[i],
                 num_pbins,
                 uniformprior
             )
@@ -648,8 +648,8 @@ def run_decoder_chance(
             posterior_lgtdrk, decoded_pos_lgtdrk = b.bayesian_decoder_chunks(
                 mouse,
                 training_lgtdrk[i],
-                spikes_dark_chunks[i],
-                trial_dark_chunks[i],
+                spikes_drk_chunks[i],
+                triallength_drk_chunks[i],
                 num_pbins,
                 uniformprior
             )
@@ -657,8 +657,8 @@ def run_decoder_chance(
             posterior_drklgt, decoded_pos_drklgt = b.bayesian_decoder_chunks(
                 mouse,
                 training_drklgt[i],
-                spikes_light_chunks[i],
-                trial_light_chunks[i],
+                spikes_lgt_chunks[i],
+                triallength_lgt_chunks[i],
                 num_pbins,
                 uniformprior
             )
