@@ -1,5 +1,7 @@
 .DS_Store
 
+assets/savefig
+
 datafiles/C57_59_Napoleon
 datafiles/C57_60_Octavius/Shuffled_time_binned_DiscreteSpikes_200msbins.mat
 datafiles/C57_60_Octavius/Shuffled_time_binned_SpikeInf_200msbins.mat
