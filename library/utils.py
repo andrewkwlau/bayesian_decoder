@@ -226,13 +226,13 @@ def mask_position_mtx(
     return position_mtx_masked
 
 
-def compute_sigma(tau: float, mode: str = None, windsize: float = 1.0, smoothfactor: float = 0.2) -> float:
+def compute_sigma(tau: float, mode: str = None, windsize: float = 1.0, SDfrac: float = 0.2) -> float:
     """
     Compute sigma (standard deviation) for Gaussian kernel smoothing.
 
     Args:
         tau (float):
-            Size of tiem bin of the data in seconds, e.g. 0.1 = 100ms.
+            Size of time bin of the data in seconds, e.g. 0.1 = 100ms.
 
         mode (str):
             Default None. It will return the sigma by mulitplying the windsize
@@ -242,21 +242,23 @@ def compute_sigma(tau: float, mode: str = None, windsize: float = 1.0, smoothfac
         windsize (float):
             Window size of the Gaussian smoothing kernel. Default as 1 second.
 
-        smoothfactor (float):
-            equivalent to smoothfactor in MATLAB smoothdata.
+        SDfrac (float):
+            Ratio of the standard deviation to the window width. Default 1/5, i.e. 0.2,
+            equivalent to MATLAB smoothdata() function.
 
     Returns:
         sigma (float):
-            Standard deviation of the Gaussian kernel.
+            Standard deviation of the Gaussian kernel in terms of data units. If
+            data unit is 100ms, a sigma of 2 means 2 x 100ms = 200ms.
     """
     if mode == 'FWHM':
         # Window size in num_tbins divided by Full Width at Half Maximum constant 2.352
         sigma = (windsize / tau) / (2 * np.sqrt(2 * np.log(2)))
     else:
-        if smoothfactor > 1 or smoothfactor <= 0:
+        if SDfrac > 1 or SDfrac <= 0:
             raise ValueError("smoothfactor must be positive between 0 and 1.")
-        sigma = (windsize / tau) * smoothfactor
-    print("sigma: {}, smoothfactor: {}".format(sigma, smoothfactor))
+        sigma = (windsize / tau) * SDfrac
+    print("sigma: {}, SD/windsize ratio: {}".format(sigma, SDfrac))
 
     return sigma
 
