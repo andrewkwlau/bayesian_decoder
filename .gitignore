@@ -6,6 +6,7 @@ datafiles/C57_60_Octavius/Shuffled_time_binned_SpikeInf_200msbins.mat
 datafiles/C57_61_Priamus
 datafiles/C57_913_Qiu
 datafiles/C57_915_Serena
+datafiles/Neuropixel
 
 library/.DS_Store
 library/__pycache__
@@ -18,6 +19,7 @@ scripts/octavius.ipynb
 scripts/priamus.ipynb
 scripts/qiu.ipynb
 scripts/serena.ipynb
+scripts/test_npxl.ipynb
 scripts/test_pca.ipynb
 scripts/test_priamus.ipynb
 scripts/test_serena.ipynb
