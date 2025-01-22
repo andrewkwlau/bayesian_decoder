@@ -11,20 +11,18 @@ To investigate this, members of the Rochefort Lab utilised a VR navigation task 
 As part of this bigger project, I use Bayesian inference to decode the spatial location of mice from their V1 neural activity. This offers preliminary evidence that the mice V1 encode spatial representations both in light and in dark where visual cues are absent.
 
 Full dissertation:
-[here](https://drive.google.com/file/d/1aufyHlR_6vslDHpS80ekPQCx5uOTfaKf/view?usp=sharing) (results are not the most updated)
+[here](./assets/MScR%20Dissertation.pdf)
+(results are not the most updated)
 
-![here](./assets/MScR%20Dissertation.pdf)
 
 ## Demonstration and Results
 You can also see a demo of the decoding pipeline
 [here](scripts/demo.ipynb).
 
 
-### Decoder Accuracy
-![accuracy](./assets/accuracy_all.png)
+### Decoder Accuracy and Errors
+![accuracy](./assets/accuracy&errors.jpeg)
 
-### Decoder Errors
-![errors](./assets/errors_all.png)
 
 ### Sample confusion matrix in light and dark
 ![confusion_mtx_lgtlgt](./assets/Octavius_confusion_mtx.jpeg)
