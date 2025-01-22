@@ -165,3 +165,9 @@ class MouseData:
         print('no. of light trials: {}'.format(np.count_nonzero(self.darktrials==0)))
         print('no. of dark trials: {}'.format(np.count_nonzero(self.darktrials)))
 
+
+@dataclass
+class NpxlData:
+    mouse_ID: str
+    tau: float
+    rewardzone: int | tuple | list

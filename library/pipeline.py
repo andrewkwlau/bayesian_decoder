@@ -140,6 +140,79 @@ def get_tuning_curves(
     )
 
 
+def get_tuning_curves_npxl(
+        mouse: d.NpxlData,
+        x: int = 5,
+        tunnellength: int = 50,
+        SDsize: float = 0.2
+):
+    """
+    """
+    # Find first x position
+    mouse.firstx_pos_lgt = u.get_firstx_pos(mouse.pos_lgt, x)
+    mouse.firstx_pos_drk = u.get_firstx_pos(mouse.pos_drk, x)
+
+    # Create mask
+    mouse.mask_lgt = u.create_spikesmask(
+        mouse.spikes_lgt, 
+        mouse.pos_lgt, 
+        None, 
+        mouse.rewardzone, 
+        mouse.firstx_pos_lgt
+    )
+    mouse.mask_drk = u.create_spikesmask(
+        mouse.spikes_drk, 
+        mouse.pos_drk, 
+        None, 
+        mouse.rewardzone, 
+        mouse.firstx_pos_drk
+    )
+    
+    # Mask position_mtx
+    mouse.pos_lgt_masked = u.mask_position_mtx(
+        mouse.pos_lgt, 
+        mouse.rewardzone, 
+        mouse.firstx_pos_lgt
+    )
+    mouse.pos_drk_masked = u.mask_position_mtx(
+        mouse.pos_drk, 
+        mouse.rewardzone, 
+        mouse.firstx_pos_drk
+    )
+
+    # Mask spikes and convolved spikes (firing rates)
+    mouse.spikes_lgt_masked = u.mask_spikes(mouse.spikes_lgt, mouse.mask_lgt)
+    mouse.spikes_drk_masked = u.mask_spikes(mouse.spikes_drk, mouse.mask_drk)
+    mouse.fr_lgt_smoothed_masked = u.mask_spikes(mouse.fr_lgt_smoothed, mouse.mask_lgt)
+    mouse.fr_drk_smoothed_masked = u.mask_spikes(mouse.fr_drk_smoothed, mouse.mask_drk)
+
+    # Get trial lengths
+    mouse.triallength_lgt = u.get_trial_length(mouse.pos_lgt_masked)
+    mouse.triallength_drk = u.get_trial_length(mouse.pos_drk_masked)
+
+    # Bin firing rates data by position
+    mouse.fr_lgt_posbinned = u.posbinning_data(
+        mouse.fr_lgt_smoothed_masked, 
+        'npxl',
+        mouse.pos_lgt_masked,
+        tunnellength,
+        mouse.tau
+    )
+    mouse.fr_drk_posbinned = u.posbinning_data(
+        mouse.fr_drk_smoothed_masked, 
+        'npxl',
+        mouse.pos_drk_masked,
+        tunnellength,
+        mouse.tau
+    )
+
+    # Scale firing rates
+    mouse.fr_lgt_scaled_smoothed, mouse.fr_drk_scaled_smoothed = u.scale_firingrate(
+        mouse.fr_lgt_posbinned, 
+        mouse.fr_drk_posbinned
+    )
+    
+
 def run_decoder(
         mouse: d.MouseData,
         x: int = 5, 
