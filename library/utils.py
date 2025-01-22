@@ -358,8 +358,9 @@ def posbinning_data(
             to be binned by position.
 
         data_type (str):
-            The two different output types from CASCADE.
+            The three different data types.
             - 'spikeprob' = spike probability.
+            - 'npxl' = Neuropixel data.
             - 'spikes'= discrete spikes.
 
         position_mtx_masked (np.ndarray):
@@ -397,7 +398,7 @@ def posbinning_data(
             activity = np.array(activity)
 
             # Specify output settings
-            if data_type == 'spikeprob':
+            if data_type == 'spikeprob' or data_type == 'npxl':
                 # Compute average spike probability of this position bin
                 activity = np.nanmean(activity, axis=0)
                 output[trial,pbin,:] = activity
