@@ -8,7 +8,7 @@ import data as d
 import utils as u
 
 def bayesian_decoder(
-        mouse: d.MouseData, 
+        mouse: d.MouseData | d.NpxlData, 
         training_fr: np.ndarray, 
         testing_spikes: np.ndarray, 
         num_pbins: int,
@@ -45,8 +45,6 @@ def bayesian_decoder(
     # Initialise ouput matrices
     posterior = np.full((num_trials, num_tbins, num_pbins), np.nan)   
     decoded_pos = np.full((num_trials, num_tbins), np.nan)    
-    # Get Trial Lengths for light and dark trials respectively
-    trial_light, trial_dark = u.split_lightdark(mouse.trial_length, mouse.darktrials)
 
     if uniform_prior is True:
         px = 1 / num_pbins
@@ -68,14 +66,14 @@ def bayesian_decoder(
         # ----------------------------------------------------------------------
         if uniform_prior is False:        
             # Set p(x) = 1 over trial length measured in position bins
-            if num_trials == trial_light.shape[0]:
-                px = 1 / trial_light[test_trial]
-            elif num_trials == trial_dark.shape[0]:
-                px = 1 / trial_dark[test_trial]
+            if num_trials == mouse.triallength_lgt.shape[0]:
+                px = 1 / mouse.triallength_lgt[test_trial]
+            elif num_trials == mouse.triallength_drk.shape[0]:
+                px = 1 / mouse.triallength_drk[test_trial]
             else:
                 print(num_trials)
-                print(trial_light.shape[0])
-                print(trial_dark.shape[0])
+                print(mouse.triallength_lgt.shape[0])
+                print(mouse.triallength_drk.shape[0])
                 raise ValueError("num_trials does not match the shape of either trial_light or trial_dark.")
             log_px = np.log(px)
         else: pass
