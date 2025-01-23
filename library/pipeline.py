@@ -195,63 +195,6 @@ def get_tuning_curves_npxl(
     )
 
 
-def sort_and_chunk(
-        mouse: d.MouseData | d.NpxlData,
-        data: np.ndarray, 
-        data_condition: str,
-        discrete: bool = True,
-        num_chunks: int = 10
-):
-    """
-    Sort and chunk trials.
-    Equivalent to sort_trialstart() + chunk_trials() combined, plus the extra
-    option to chunk trials based on discrete start positions.
-    """
-    num_trials = data.shape[0]
-
-    if type(mouse) == d.MouseData:
-        pos_all = mouse.position_mtx
-    pos_lgt = mouse.pos_lgt
-    pos_drk = mouse.pos_drk
-
-    start_location = []
-    # Find start location of each trial and apppend them
-    for trial in range(num_trials):
-        if data_condition == 'all':
-            trial_start = pos_all[trial, np.where(~np.isnan(pos_all[trial]))[0][0]]
-        elif data_condition == 'light':
-            trial_start = pos_lgt[trial, np.where(~np.isnan(pos_lgt[trial]))[0][0]]
-        elif data_condition == 'dark':
-            trial_start = pos_drk[trial, np.where(~np.isnan(pos_drk[trial]))[0][0]]        
-        start_location.append(trial_start)      
-    
-    # Sort trial start location and generate new trial index
-    trial_start_sorted = np.sort(start_location)
-    new_trial_index = np.argsort(start_location)
-    print(trial_start_sorted)
-    
-    # Rearrange data with new trial index
-    for trial in range(num_trials):
-        data_sorted = data[new_trial_index]
-
-    # Chunk trials
-    # if trials have discete start location
-    if discrete == True:
-        data_list = []
-        for start_location in np.unique(trial_start_sorted):
-            # Find indices of trials that have the same start location
-            indices = np.where(trial_start_sorted == start_location)[0]
-            data_list.append(data_sorted[indices])
-    else:
-        data_list = np.array_split(data_sorted, num_chunks, axis=0)
-
-    for chunk in data_list:
-        print(chunk.shape)
-    
-    return data_list
-
-
-
 def run_decoder(
         mouse: d.MouseData | d.NpxlData,
         x: int = 5, 
