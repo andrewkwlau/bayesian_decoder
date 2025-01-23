@@ -53,33 +53,23 @@ def get_tuning_curves(
         mouse.spikeprob, 
         mouse.rewardzone, 
         mouse.firstx_pos
-    )
-    
+    )    
     mouse.position_mtx_masked = u.mask_position_mtx(
         mouse.position_mtx, 
         mouse.rewardzone, 
         mouse.firstx_pos
-    )
-    mouse.pos_lgt_masked, mouse.pos_drk_masked = u.split_lightdark(mouse.position_mtx_masked, mouse.darktrials)
-    
+    )  
     mouse.spikes_masked = u.mask_spikes(mouse.spikes, mouse.mask)
-    mouse.spikes_lgt, mouse.spikes_drk = u.split_lightdark(mouse.spikes_masked, mouse.darktrials)
     
-    mouse.spikeprob_masked = u.mask_spikes(mouse.spikeprob, mouse.mask)
-    mouse.spikeprob_lgt, mouse.spikeprob_drk = u.split_lightdark(mouse.spikeprob_masked, mouse.darktrials)
-
-
     # Get trial length
     print("2. Getting trial length.")
     mouse.triallength = u.get_trial_length(mouse.position_mtx_masked)
     mouse.triallength_lgt, mouse.triallength_drk = u.split_lightdark(mouse.triallength, mouse.darktrials)
 
-
     # Smooth data with Gaussian filter
     print("3. Smoothing spikes.")
     sigma = u.compute_sigma(mouse.tau, SDsize=SDsize)
     mouse.spikes_smoothed = u.gaussiansmooth_spikes(mouse.spikes_masked, mouse.mask, sigma)
-    mouse.spikeprob_smoothed = u.gaussiansmooth_spikes(mouse.spikeprob_masked, mouse.mask, sigma)
 
     # Position binning and generating firing rates
     print("4. Position Binning data and generating firing rates.")
@@ -97,24 +87,21 @@ def get_tuning_curves(
         tunnellength, 
         mouse.tau
     )
-    mouse.spikeprob_pbin = u.posbinning_data(
-        mouse.spikeprob_masked,
-        'spikeprob',
-        mouse.position_mtx_masked,
-        tunnellength,
-        mouse.tau
-    )
-    mouse.spikeprob_pbin_smoothed = u.posbinning_data(
-        mouse.spikeprob_smoothed,
-        'spikeprob',
-        mouse.position_mtx_masked,
-        tunnellength,
-        mouse.tau
-    )
-
 
     # Split data into light and dark trials
     print("5. Splitting light vs dark.")
+    mouse.pos_lgt, mouse.pos_drk = u.split_lightdark(
+        mouse.position_mtx,
+        mouse.darktrials
+    )
+    mouse.pos_lgt_masked, mouse.pos_drk_masked = u.split_lightdark(
+        mouse.position_mtx_masked, 
+        mouse.darktrials
+    )
+    mouse.spikes_lgt, mouse.spikes_drk = u.split_lightdark(
+        mouse.spikes_masked, 
+        mouse.darktrials
+    )
     mouse.fr_lgt, mouse.fr_drk = u.split_lightdark(
         mouse.fr, 
         mouse.darktrials
@@ -123,14 +110,6 @@ def get_tuning_curves(
         mouse.fr_smoothed, 
         mouse.darktrials
     )  
-    mouse.spikeprob_pbin_lgt, mouse.spikeprob_pbin_drk = u.split_lightdark(
-        mouse.spikeprob_pbin,
-        mouse.darktrials
-    )
-    mouse.spikeprob_pbin_smoothed_lgt, mouse.spikeprob_pbin_smoothed_drk = u.split_lightdark(
-        mouse.spikeprob_pbin_smoothed,
-        mouse.darktrials
-    )
 
     # Scale firing rates
     print("6. Scaling firing rates.")
@@ -186,23 +165,23 @@ def get_tuning_curves_npxl(
     # Mask spikes and convolved spikes (firing rates)
     mouse.spikes_lgt_masked = u.mask_spikes(mouse.spikes_lgt, mouse.mask_lgt)
     mouse.spikes_drk_masked = u.mask_spikes(mouse.spikes_drk, mouse.mask_drk)
-    mouse.fr_lgt_smoothed_masked = u.mask_spikes(mouse.fr_lgt_smoothed, mouse.mask_lgt)
-    mouse.fr_drk_smoothed_masked = u.mask_spikes(mouse.fr_drk_smoothed, mouse.mask_drk)
+    mouse.fr_lgt_masked = u.mask_spikes(mouse.fr_lgt, mouse.mask_lgt)
+    mouse.fr_drk_masked = u.mask_spikes(mouse.fr_drk, mouse.mask_drk)
 
     # Get trial lengths
     mouse.triallength_lgt = u.get_trial_length(mouse.pos_lgt_masked)
     mouse.triallength_drk = u.get_trial_length(mouse.pos_drk_masked)
 
     # Bin firing rates data by position
-    mouse.fr_lgt_posbinned = u.posbinning_data(
-        mouse.fr_lgt_smoothed_masked, 
+    mouse.fr_lgt_smoothed = u.posbinning_data(
+        mouse.fr_lgt_masked, 
         'npxl',
         mouse.pos_lgt_masked,
         tunnellength,
         mouse.tau
     )
-    mouse.fr_drk_posbinned = u.posbinning_data(
-        mouse.fr_drk_smoothed_masked, 
+    mouse.fr_drk_smoothed = u.posbinning_data(
+        mouse.fr_drk_masked, 
         'npxl',
         mouse.pos_drk_masked,
         tunnellength,
@@ -211,9 +190,66 @@ def get_tuning_curves_npxl(
 
     # Scale firing rates
     mouse.fr_lgt_scaled_smoothed, mouse.fr_drk_scaled_smoothed = u.scale_firingrate(
-        mouse.fr_lgt_posbinned, 
-        mouse.fr_drk_posbinned
+        mouse.fr_lgt_smoothed, 
+        mouse.fr_drk_smoothed
     )
+
+
+def sort_and_chunk(
+        mouse: d.MouseData | d.NpxlData,
+        data: np.ndarray, 
+        data_condition: str,
+        discrete: bool = True,
+        num_chunks: int = 10
+):
+    """
+    Sort and chunk trials.
+    Equivalent to sort_trialstart() + chunk_trials() combined, plus the extra
+    option to chunk trials based on discrete start positions.
+    """
+    num_trials = data.shape[0]
+
+    if type(mouse) == d.MouseData:
+        pos_all = mouse.position_mtx
+    pos_lgt = mouse.pos_lgt
+    pos_drk = mouse.pos_drk
+
+    start_location = []
+    # Find start location of each trial and apppend them
+    for trial in range(num_trials):
+        if data_condition == 'all':
+            trial_start = pos_all[trial, np.where(~np.isnan(pos_all[trial]))[0][0]]
+        elif data_condition == 'light':
+            trial_start = pos_lgt[trial, np.where(~np.isnan(pos_lgt[trial]))[0][0]]
+        elif data_condition == 'dark':
+            trial_start = pos_drk[trial, np.where(~np.isnan(pos_drk[trial]))[0][0]]        
+        start_location.append(trial_start)      
+    
+    # Sort trial start location and generate new trial index
+    trial_start_sorted = np.sort(start_location)
+    new_trial_index = np.argsort(start_location)
+    print(trial_start_sorted)
+    
+    # Rearrange data with new trial index
+    for trial in range(num_trials):
+        data_sorted = data[new_trial_index]
+
+    # Chunk trials
+    # if trials have discete start location
+    if discrete == True:
+        data_list = []
+        for start_location in np.unique(trial_start_sorted):
+            # Find indices of trials that have the same start location
+            indices = np.where(trial_start_sorted == start_location)[0]
+            data_list.append(data_sorted[indices])
+    else:
+        data_list = np.array_split(data_sorted, num_chunks, axis=0)
+
+    for chunk in data_list:
+        print(chunk.shape)
+    
+    return data_list
+
 
 
 def run_decoder(
@@ -276,34 +312,24 @@ def run_decoder(
 
     # Decoder training set options
     print("7. Running decoder...")
-    if type(mouse) == d.NpxlData:
-        training_lgtlgt = mouse.fr_lgt_posbinned
-        training_drkdrk = mouse.fr_drk_posbinned
+    if smooth == True:
+        training_lgtlgt = mouse.fr_lgt_smoothed
+        training_drkdrk = mouse.fr_drk_smoothed
         if scale == True:
             training_lgtdrk = mouse.fr_lgt_scaled_smoothed
             training_drklgt = mouse.fr_drk_scaled_smoothed
         elif scale == False:
             training_lgtdrk = mouse.fr_lgt_smoothed
             training_drklgt = mouse.fr_drk_smoothed
-    else:
-        if smooth == True:
-            training_lgtlgt = mouse.fr_lgt_smoothed
-            training_drkdrk = mouse.fr_drk_smoothed
-            if scale == True:
-                training_lgtdrk = mouse.fr_lgt_scaled_smoothed
-                training_drklgt = mouse.fr_drk_scaled_smoothed
-            elif scale == False:
-                training_lgtdrk = mouse.fr_lgt_smoothed
-                training_drklgt = mouse.fr_drk_smoothed
-        elif smooth == False:
-            training_lgtlgt = mouse.fr_lgt
-            training_drkdrk = mouse.fr_drk
-            if scale == True:
-                training_lgtdrk = mouse.fr_lgt_scaled
-                training_drklgt = mouse.fr_drk_scaled
-            elif scale == False:
-                training_lgtdrk = mouse.fr_lgt
-                training_drklgt = mouse.fr_drk
+    elif smooth == False:
+        training_lgtlgt = mouse.fr_lgt
+        training_drkdrk = mouse.fr_drk
+        if scale == True:
+            training_lgtdrk = mouse.fr_lgt_scaled
+            training_drklgt = mouse.fr_drk_scaled
+        elif scale == False:
+            training_lgtdrk = mouse.fr_lgt
+            training_drklgt = mouse.fr_drk
     
 
     # Decoder with options for smoothing and scaling of firing rates
