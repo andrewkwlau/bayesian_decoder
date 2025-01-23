@@ -13,7 +13,7 @@ def get_tuning_curves(
         mouse: d.MouseData,
         x: int = 5, 
         tunnellength: int = 50, 
-        smoothfactor: float = 0.2, 
+        SDsize: float = 0.2, 
 ):
     """
     Wrapper function for getting tuning curves. Does the following for both 
@@ -36,8 +36,8 @@ def get_tuning_curves(
             Number of position bins in full tunnel (including reward zone) for
             position binnning the spikes into spatial tuning curves.
 
-        smoothfactor (float):
-            Equivalent to smoothfactor in MATLAB smoothdata. Used to compute
+        SDsize (float):
+            Equivalent to SDsize in MATLAB smoothdata. Used to compute
             gaussian kernel standard deviation (sigma).
 
     Returns:
@@ -54,13 +54,17 @@ def get_tuning_curves(
         mouse.rewardzone, 
         mouse.firstx_pos
     )
+    
     mouse.position_mtx_masked = u.mask_position_mtx(
         mouse.position_mtx, 
         mouse.rewardzone, 
         mouse.firstx_pos
     )
+    mouse.pos_lgt_masked, mouse.pos_drk_masked = u.split_lightdark(mouse.position_mtx_masked, mouse.darktrials)
+    
     mouse.spikes_masked = u.mask_spikes(mouse.spikes, mouse.mask)
     mouse.spikes_lgt, mouse.spikes_drk = u.split_lightdark(mouse.spikes_masked, mouse.darktrials)
+    
     mouse.spikeprob_masked = u.mask_spikes(mouse.spikeprob, mouse.mask)
     mouse.spikeprob_lgt, mouse.spikeprob_drk = u.split_lightdark(mouse.spikeprob_masked, mouse.darktrials)
 
@@ -73,7 +77,7 @@ def get_tuning_curves(
 
     # Smooth data with Gaussian filter
     print("3. Smoothing spikes.")
-    sigma = u.compute_sigma(mouse.tau, smoothfactor=smoothfactor)
+    sigma = u.compute_sigma(mouse.tau, SDsize=SDsize)
     mouse.spikes_smoothed = u.gaussiansmooth_spikes(mouse.spikes_masked, mouse.mask, sigma)
     mouse.spikeprob_smoothed = u.gaussiansmooth_spikes(mouse.spikeprob_masked, mouse.mask, sigma)
 
@@ -144,7 +148,6 @@ def get_tuning_curves_npxl(
         mouse: d.NpxlData,
         x: int = 5,
         tunnellength: int = 50,
-        SDsize: float = 0.2
 ):
     """
     """
@@ -214,12 +217,12 @@ def get_tuning_curves_npxl(
 
 
 def run_decoder(
-        mouse: d.MouseData,
+        mouse: d.MouseData | d.NpxlData,
         x: int = 5, 
         tunnellength: int = 50, 
         num_pbins: int = 46, 
         smooth: bool = True,
-        smoothfactor: float = 0.2, 
+        SDsize: float = 0.2, 
         scale: bool = True,
         uniformprior: bool = False
 ) -> tuple:
@@ -243,8 +246,8 @@ def run_decoder(
         smooth (bool):
             Whether spikes are smoothed to generate firing rates. Default True.
 
-        smoothfactor (float):
-            Equivalent to smoothfactor in MATLAB smoothdata. Used to compute
+        SDsize (float):
+            Equivalent to SDsize in MATLAB smoothdata. Used to compute
             gaussian kernel standard deviation (sigma).
 
         scale (bool):
@@ -266,28 +269,41 @@ def run_decoder(
 
     """
     # Run wrapper for getting tunning curves
-    get_tuning_curves(mouse, x, tunnellength, smoothfactor)
+    if type(mouse) == d.MouseData:
+        get_tuning_curves(mouse, x, tunnellength, SDsize)
+    elif type(mouse) == d.NpxlData:
+        get_tuning_curves_npxl(mouse, x, tunnellength)
 
     # Decoder training set options
     print("7. Running decoder...")
-    if smooth == True:
-        training_lgtlgt = mouse.fr_lgt_smoothed
-        training_drkdrk = mouse.fr_drk_smoothed
+    if type(mouse) == d.NpxlData:
+        training_lgtlgt = mouse.fr_lgt_posbinned
+        training_drkdrk = mouse.fr_drk_posbinned
         if scale == True:
             training_lgtdrk = mouse.fr_lgt_scaled_smoothed
             training_drklgt = mouse.fr_drk_scaled_smoothed
         elif scale == False:
             training_lgtdrk = mouse.fr_lgt_smoothed
             training_drklgt = mouse.fr_drk_smoothed
-    elif smooth == False:
-        training_lgtlgt = mouse.fr_lgt
-        training_drkdrk = mouse.fr_drk
-        if scale == True:
-            training_lgtdrk = mouse.fr_lgt_scaled
-            training_drklgt = mouse.fr_drk_scaled
-        elif scale == False:
-            training_lgtdrk = mouse.fr_lgt
-            training_drklgt = mouse.fr_drk
+    else:
+        if smooth == True:
+            training_lgtlgt = mouse.fr_lgt_smoothed
+            training_drkdrk = mouse.fr_drk_smoothed
+            if scale == True:
+                training_lgtdrk = mouse.fr_lgt_scaled_smoothed
+                training_drklgt = mouse.fr_drk_scaled_smoothed
+            elif scale == False:
+                training_lgtdrk = mouse.fr_lgt_smoothed
+                training_drklgt = mouse.fr_drk_smoothed
+        elif smooth == False:
+            training_lgtlgt = mouse.fr_lgt
+            training_drkdrk = mouse.fr_drk
+            if scale == True:
+                training_lgtdrk = mouse.fr_lgt_scaled
+                training_drklgt = mouse.fr_drk_scaled
+            elif scale == False:
+                training_lgtdrk = mouse.fr_lgt
+                training_drklgt = mouse.fr_drk
     
 
     # Decoder with options for smoothing and scaling of firing rates
@@ -350,7 +366,7 @@ def run_decoder_chunks(
         tunnellength: int = 50, 
         num_pbins: int = 46, 
         smooth: bool = True,
-        smoothfactor: float = 0.2, 
+        SDsize: float = 0.2, 
         scale: bool = True,
         uniformprior: bool = False,
         discrete: bool = True,
@@ -398,7 +414,7 @@ def run_decoder_chunks(
 
     """
     # Run wrapper for getting tunning curves
-    get_tuning_curves(mouse, x, tunnellength, smoothfactor)
+    get_tuning_curves(mouse, x, tunnellength, SDsize)
 
     # Sort and chunk trials in list
     print("Sorting trials and chunking trials.")
@@ -508,7 +524,7 @@ def run_decoder_chance(
         tunnellength: int = 50, 
         num_pbins: int = 46, 
         smooth: bool = True,
-        smoothfactor: float = 0.2, 
+        SDsize: float = 0.2, 
         scale: bool = True,
         uniformprior: bool = False,
         discrete: bool = True,
@@ -552,7 +568,7 @@ def run_decoder_chance(
 
         # Smooth data with Gaussian filter
         print("3. Smoothing spikes.")
-        sigma = u.compute_sigma(mouse.tau, smoothfactor=smoothfactor)
+        sigma = u.compute_sigma(mouse.tau, SDsize=SDsize)
         spikes_smoothed = u.gaussiansmooth_spikes(spikes_masked, mask, sigma)
 
         # Position binning and generating firing rates
@@ -690,9 +706,7 @@ def run_decoder_chance(
 
 
 def run_results(
-        mouse: d.MouseData, 
-        posterior_all: dict, 
-        decoded_pos_all: dict,
+        mouse: d.MouseData | d.NpxlData, 
         num_pbins: int = 46
 ) -> tuple:
     """
@@ -735,36 +749,45 @@ def run_results(
                 a dict containing the Root Mean Squared Errors (float): 
                 'lgtlgt', 'drkdrk', 'lgtdrk', 'drklgt'
     """  
+    
+    paradigms = ['lgtlgt', 'drkdrk', 'lgtdrk', 'drklgt']
+    confusion_mtx = {paradigm:[] for paradigm in paradigms}
+    accuracy = {paradigm:[] for paradigm in paradigms}
+    errors = {paradigm:[] for paradigm in paradigms}
+    mse = {paradigm:[] for paradigm in paradigms}
+    rt_mse = {paradigm:[] for paradigm in paradigms}
+    
+    
     # Confusion Matrices
     print()
     print("Confusion Matrix lgtlgt")
-    confusion_mtx_lgtlgt = r.generate_confusion_mtx(
+    confusion_mtx['lgtlgt'] = r.generate_confusion_mtx(
         mouse,
-        decoded_pos_all['lgtlgt'],
+        mouse.decoded_pos_all['lgtlgt'],
         'lgtlgt',
         num_pbins
     )
     print()
     print("Confusion Matrix drkdrk")
-    confusion_mtx_drkdrk = r.generate_confusion_mtx(
+    confusion_mtx['drkdrk'] = r.generate_confusion_mtx(
         mouse,
-        decoded_pos_all['drkdrk'],
+        mouse.decoded_pos_all['drkdrk'],
         'drkdrk',
         num_pbins
     )
     print()
     print("Confusion Matrix lgtdrk")
-    confusion_mtx_lgtdrk = r.generate_confusion_mtx(
+    confusion_mtx['lgtdrk'] = r.generate_confusion_mtx(
         mouse,
-        decoded_pos_all['lgtdrk'],
+        mouse.decoded_pos_all['lgtdrk'],
         'lgtdrk',
         num_pbins
     )
     print()
     print("Confusion Matrix drklgt")
-    confusion_mtx_drklgt = r.generate_confusion_mtx(
+    confusion_mtx['drklgt'] = r.generate_confusion_mtx(
         mouse,
-        decoded_pos_all['drklgt'],
+        mouse.decoded_pos_all['drklgt'],
         'drklgt',
         num_pbins
     )
@@ -772,97 +795,72 @@ def run_results(
     # Accuracy
     print()
     print("Accuracy lgtlgt")
-    accuracy_lgtlgt = r.compute_accuracy(
+    accuracy['lgtlgt'] = r.compute_accuracy(
         mouse,
-        decoded_pos_all['lgtlgt'],
+        mouse.decoded_pos_all['lgtlgt'],
         'lgtlgt'
     )
     print()
     print("Accuracy drkdrk")
-    accuracy_drkdrk = r.compute_accuracy(
+    accuracy['drkdrk'] = r.compute_accuracy(
         mouse,
-        decoded_pos_all['drkdrk'],
+        mouse.decoded_pos_all['drkdrk'],
         'drkdrk'
     )
     print()
     print("Accuracy lgtdrk")
-    accuracy_lgtdrk = r.compute_accuracy(
+    accuracy['lgtdrk'] = r.compute_accuracy(
         mouse,
-        decoded_pos_all['lgtdrk'],
+        mouse.decoded_pos_all['lgtdrk'],
         'lgtdrk'
     )
     print()
     print("Accuracy drklgt")
-    accuracy_drklgt = r.compute_accuracy(
+    accuracy['drklgt'] = r.compute_accuracy(
         mouse,
-        decoded_pos_all['drklgt'],
+        mouse.decoded_pos_all['drklgt'],
         'drklgt'
     )
 
     # Errors
     print()
     print("Errors lgtlgt")
-    errors_lgtlgt, mse_lgtlgt, rt_mse_lgtlgt = r.compute_errors(
+    errors['lgtlgt'], mse['lgtlgt'], rt_mse['lgtlgt'] = r.compute_errors(
         mouse,
-        decoded_pos_all['lgtlgt'],
+        mouse.decoded_pos_all['lgtlgt'],
         'lgtlgt'
     )
     print()
     print("Errors drkdrk")
-    errors_drkdrk, mse_drkdrk, rt_mse_drkdrk = r.compute_errors(
+    errors['drkdrk'], mse['drkdrk'], rt_mse['drkdrk'] = r.compute_errors(
         mouse,
-        decoded_pos_all['drkdrk'],
+        mouse.decoded_pos_all['drkdrk'],
         'drkdrk'
     )
     print()
     print("Errors lgtdrk")
-    errors_lgtdrk, mse_lgtdrk, rt_mse_lgtdrk = r.compute_errors(
+    errors['lgtdrk'], mse['lgtdrk'], rt_mse['lgtdrk'] = r.compute_errors(
         mouse,
-        decoded_pos_all['lgtdrk'],
+        mouse.decoded_pos_all['lgtdrk'],
         'lgtdrk'
     )
     print()
     print("Errors drklgt")
-    errors_drklgt, mse_drklgt, rt_mse_drklgt = r.compute_errors(
+    errors['drklgt'], mse['drklgt'], rt_mse['drklgt'] = r.compute_errors(
         mouse,
-        decoded_pos_all['drklgt'],
+        mouse.decoded_pos_all['drklgt'],
         'drklgt'
     )
 
-
     # Outputs
-    confusion_mtx_all = {
-        'lgtlgt': confusion_mtx_lgtlgt,
-        'drkdrk': confusion_mtx_drkdrk,
-        'lgtdrk': confusion_mtx_lgtdrk,
-        'drklgt': confusion_mtx_drklgt
+    results = {
+        'confusion_mtx': confusion_mtx,
+        'accuracy': accuracy,
+        'errors': errors,
+        'mse': mse,
+        'rt_mse': rt_mse
     }
-    accuracy_all = {
-        'lgtlgt': accuracy_lgtlgt,
-        'drkdrk': accuracy_drkdrk,
-        'lgtdrk': accuracy_lgtdrk,
-        'drklgt': accuracy_drklgt
-    }
-    errors_all = {
-        'lgtlgt': errors_lgtlgt,
-        'drkdrk': errors_drkdrk,
-        'lgtdrk': errors_lgtdrk,
-        'drklgt': errors_drklgt
-    }
-    mse_all = {
-        'lgtlgt': mse_lgtlgt,
-        'drkdrk': mse_drkdrk,
-        'lgtdrk': mse_lgtdrk,
-        'drklgt': mse_drklgt
-    }
-    rt_mse_all = {
-        'lgtlgt': rt_mse_lgtlgt,
-        'drkdrk': rt_mse_drkdrk,
-        'lgtdrk': rt_mse_lgtdrk,
-        'drklgt': rt_mse_drklgt
-    }
-
-    return confusion_mtx_all, accuracy_all, errors_all, mse_all, rt_mse_all
+    return results
 
 
 def run_results_chunks(

@@ -40,11 +40,10 @@ def generate_confusion_mtx(
     confusion_mtx = np.zeros((num_pbins,num_pbins))
 
     # Specify true position and predicted position
-    pos_light, pos_dark = u.split_lightdark(mouse.position_mtx_masked, mouse.darktrials)         
     if paradigm == 'lgtlgt' or paradigm == 'drklgt':
-        true = pos_light    
+        true = mouse.pos_lgt_masked
     elif paradigm == 'drkdrk' or paradigm == 'lgtdrk':
-        true = pos_dark
+        true = mouse.pos_drk_masked
     pred = decoded_pos
         
     # For each true position bin y / for each row in the y-axis
@@ -261,11 +260,10 @@ def compute_accuracy(
     num_non_nans = np.sum(~np.isnan(decoded_pos)) 
     
     # Specify true positions
-    pos_light, pos_dark = u.split_lightdark(mouse.position_mtx_masked, mouse.darktrials)
     if paradigm == 'lgtlgt' or paradigm == 'drklgt':
-        true = pos_light
+        true = mouse.pos_lgt_masked
     elif paradigm == 'drkdrk' or paradigm == 'lgtdrk':
-        true = pos_dark
+        true = mouse.pos_drk_masked
 
     # Create a mask for time bins where there are decoder predictions
     predictions = ~np.isnan(decoded_pos)
@@ -369,12 +367,10 @@ def compute_errors(
             - mse (float)
             - rt_mse (float)
     """
-    pos_light, pos_dark = u.split_lightdark(mouse.position_mtx_masked, mouse.darktrials)
-
     if paradigm == 'lgtlgt' or paradigm == 'drklgt':
-        true = pos_light
+        true = mouse.pos_lgt_masked
     elif paradigm == 'drkdrk' or paradigm == 'lgtdrk':
-        true = pos_dark
+        true = mouse.pos_drk_masked
 
     # Create a mask for time bins where there are decoder predictions
     predictions = ~np.isnan(decoded_pos)
