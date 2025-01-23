@@ -73,13 +73,6 @@ def get_tuning_curves(
 
     # Position binning and generating firing rates
     print("4. Position Binning data and generating firing rates.")
-    mouse.fr = u.posbinning_data(
-        mouse.spikes_masked, 
-        'spikes', 
-        mouse.position_mtx_masked, 
-        tunnellength, 
-        mouse.tau
-    )
     mouse.fr_smoothed = u.posbinning_data(
         mouse.spikes_smoothed, 
         'spikes', 
@@ -102,10 +95,6 @@ def get_tuning_curves(
         mouse.spikes_masked, 
         mouse.darktrials
     )
-    mouse.fr_lgt, mouse.fr_drk = u.split_lightdark(
-        mouse.fr, 
-        mouse.darktrials
-    )
     mouse.fr_lgt_smoothed, mouse.fr_drk_smoothed = u.split_lightdark(
         mouse.fr_smoothed, 
         mouse.darktrials
@@ -113,10 +102,6 @@ def get_tuning_curves(
 
     # Scale firing rates
     print("6. Scaling firing rates.")
-    mouse.fr_lgt_scaled, mouse.fr_drk_scaled = u.scale_firingrate(
-        mouse.fr_lgt, 
-        mouse.fr_drk
-    )
     mouse.fr_lgt_scaled_smoothed, mouse.fr_drk_scaled_smoothed = u.scale_firingrate(
         mouse.fr_lgt_smoothed, 
         mouse.fr_drk_smoothed
@@ -200,7 +185,6 @@ def run_decoder(
         x: int = 5, 
         tunnellength: int = 50, 
         num_pbins: int = 46, 
-        smooth: bool = True,
         SDsize: float = 0.2, 
         scale: bool = True,
         uniformprior: bool = False
@@ -255,25 +239,14 @@ def run_decoder(
 
     # Decoder training set options
     print("7. Running decoder...")
-    if smooth == True:
-        training_lgtlgt = mouse.fr_lgt_smoothed
-        training_drkdrk = mouse.fr_drk_smoothed
-        if scale == True:
-            training_lgtdrk = mouse.fr_lgt_scaled_smoothed
-            training_drklgt = mouse.fr_drk_scaled_smoothed
-        elif scale == False:
-            training_lgtdrk = mouse.fr_lgt_smoothed
-            training_drklgt = mouse.fr_drk_smoothed
-    elif smooth == False:
-        training_lgtlgt = mouse.fr_lgt
-        training_drkdrk = mouse.fr_drk
-        if scale == True:
-            training_lgtdrk = mouse.fr_lgt_scaled
-            training_drklgt = mouse.fr_drk_scaled
-        elif scale == False:
-            training_lgtdrk = mouse.fr_lgt
-            training_drklgt = mouse.fr_drk
-    
+    training_lgtlgt = mouse.fr_lgt_smoothed
+    training_drkdrk = mouse.fr_drk_smoothed
+    if scale == True:
+        training_lgtdrk = mouse.fr_lgt_scaled_smoothed
+        training_drklgt = mouse.fr_drk_scaled_smoothed
+    elif scale == False:
+        training_lgtdrk = mouse.fr_lgt_smoothed
+        training_drklgt = mouse.fr_drk_smoothed
 
     # Decoder with options for smoothing and scaling of firing rates
     print("Running lgtlgt...")
@@ -334,7 +307,6 @@ def run_decoder_chunks(
         x: int = 5,
         tunnellength: int = 50, 
         num_pbins: int = 46, 
-        smooth: bool = True,
         SDsize: float = 0.2, 
         scale: bool = True,
         uniformprior: bool = False,
@@ -407,25 +379,14 @@ def run_decoder_chunks(
 
     # Decoder training set options
     print("7. Running decoder...")
-    if smooth == True:
-        training_lgtlgt = fr_lgt_smoothed_chunks
-        training_drkdrk = fr_drk_smoothed_chunks
-        if scale == True:
-            training_lgtdrk = fr_lgt_scaled_smoothed_chunks
-            training_drklgt = fr_drk_scaled_smoothed_chunks
-        elif scale == False:
-            training_lgtdrk = fr_lgt_smoothed_chunks
-            training_drklgt = fr_drk_smoothed_chunks
-    elif smooth == False:
-        training_lgtlgt = fr_lgt_chunks
-        training_drkdrk = fr_drk_chunks
-        if scale == True:
-            training_lgtdrk = fr_lgt_scaled_chunks
-            training_drklgt = fr_drk_scaled_chunks
-        elif scale == False:
-            training_lgtdrk = fr_lgt_chunks
-            training_drklgt = fr_drk_chunks
-
+    training_lgtlgt = fr_lgt_smoothed_chunks
+    training_drkdrk = fr_drk_smoothed_chunks
+    if scale == True:
+        training_lgtdrk = fr_lgt_scaled_smoothed_chunks
+        training_drklgt = fr_drk_scaled_smoothed_chunks
+    elif scale == False:
+        training_lgtdrk = fr_lgt_smoothed_chunks
+        training_drklgt = fr_drk_smoothed_chunks
 
     # Loop through each chunk
     for i in range(num_chunks):
@@ -492,7 +453,6 @@ def run_decoder_chance(
         x: int = 5,
         tunnellength: int = 50, 
         num_pbins: int = 46, 
-        smooth: bool = True,
         SDsize: float = 0.2, 
         scale: bool = True,
         uniformprior: bool = False,
@@ -589,25 +549,14 @@ def run_decoder_chance(
 
         # Decoder training set options
         print("8. Running decoder...")
-        if smooth == True:
-            training_lgtlgt = fr_lgt_smoothed_chunks
-            training_drkdrk = fr_drk_smoothed_chunks
-            if scale == True:
-                training_lgtdrk = fr_lgt_scaled_smoothed_chunks
-                training_drklgt = fr_drk_scaled_smoothed_chunks
-            elif scale == False:
-                training_lgtdrk = fr_lgt_smoothed_chunks
-                training_drklgt = fr_drk_smoothed_chunks
-        elif smooth == False:
-            training_lgtlgt = fr_lgt_chunks
-            training_drkdrk = fr_drk_chunks
-            if scale == True:
-                training_lgtdrk = fr_lgt_scaled_chunks
-                training_drklgt = fr_drk_scaled_chunks
-            elif scale == False:
-                training_lgtdrk = fr_lgt_chunks
-                training_drklgt = fr_drk_chunks
-
+        training_lgtlgt = fr_lgt_smoothed_chunks
+        training_drkdrk = fr_drk_smoothed_chunks
+        if scale == True:
+            training_lgtdrk = fr_lgt_scaled_smoothed_chunks
+            training_drklgt = fr_drk_scaled_smoothed_chunks
+        elif scale == False:
+            training_lgtdrk = fr_lgt_smoothed_chunks
+            training_drklgt = fr_drk_smoothed_chunks
 
         # Loop through each chunk
         for i in range(num_chunks):
