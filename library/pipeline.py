@@ -303,7 +303,7 @@ def run_decoder(
 
 
 def run_decoder_chunks(
-        mouse: d.MouseData, 
+        mouse: d.MouseData | d.NpxlData, 
         x: int = 5,
         tunnellength: int = 50, 
         num_pbins: int = 46, 
@@ -355,23 +355,23 @@ def run_decoder_chunks(
 
     """
     # Run wrapper for getting tunning curves
-    get_tuning_curves(mouse, x, tunnellength, SDsize)
+    if type(mouse) == d.MouseData:
+        get_tuning_curves(mouse, x, tunnellength, SDsize)
+    elif type(mouse) == d.NpxlData:
+        get_tuning_curves_npxl(mouse, x, tunnellength)
 
     # Sort and chunk trials in list
     print("Sorting trials and chunking trials.")
-    spikes_lgt_chunks = u.sort_and_chunk(mouse.spikes_lgt, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
-    spikes_drk_chunks = u.sort_and_chunk(mouse.spikes_drk, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
-    fr_lgt_chunks = u.sort_and_chunk(mouse.fr_lgt, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
-    fr_drk_chunks = u.sort_and_chunk(mouse.fr_drk, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
-    fr_lgt_smoothed_chunks = u.sort_and_chunk(mouse.fr_lgt_smoothed, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
-    fr_drk_smoothed_chunks = u.sort_and_chunk(mouse.fr_drk_smoothed, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
-    fr_lgt_scaled_chunks = u.sort_and_chunk(mouse.fr_lgt_scaled, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
-    fr_drk_scaled_chunks = u.sort_and_chunk(mouse.fr_drk_scaled, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
-    fr_lgt_scaled_smoothed_chunks = u.sort_and_chunk(mouse.fr_lgt_scaled_smoothed, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
-    fr_drk_scaled_smoothed_chunks = u.sort_and_chunk(mouse.fr_drk_scaled_smoothed, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
-    triallength_lgt_chunks = u.sort_and_chunk(mouse.triallength_lgt, mouse.position_mtx, mouse.darktrials, 'light', 10, discrete=discrete)
-    triallength_drk_chunks = u.sort_and_chunk(mouse.triallength_drk, mouse.position_mtx, mouse.darktrials, 'dark', 10, discrete=discrete)
+    spikes_lgt_chunks = u.sort_and_chunk(mouse, mouse.spikes_lgt, 'lgt', discrete, num_chunks)
+    spikes_drk_chunks = u.sort_and_chunk(mouse, mouse.spikes_drk, 'drk', discrete, num_chunks)
+    fr_lgt_smoothed_chunks = u.sort_and_chunk(mouse, mouse.fr_lgt_smoothed, 'lgt', discrete, num_chunks)
+    fr_drk_smoothed_chunks = u.sort_and_chunk(mouse, mouse.fr_drk_smoothed, 'drk', discrete, num_chunks)
+    fr_lgt_scaled_smoothed_chunks = u.sort_and_chunk(mouse, mouse.fr_lgt_scaled_smoothed, 'lgt', discrete, num_chunks)
+    fr_drk_scaled_smoothed_chunks = u.sort_and_chunk(mouse, mouse.fr_drk_scaled_smoothed, 'drk', discrete, num_chunks)
+    triallength_lgt_chunks = u.sort_and_chunk(mouse, mouse.triallength_lgt, 'lgt', discrete, num_chunks)
+    triallength_drk_chunks = u.sort_and_chunk(mouse, mouse.triallength_drk, 'drk', discrete, num_chunks)
 
+    num_chunks = len(spikes_lgt_chunks)
 
     # Intialise output
     posterior_allchunks = []
@@ -782,8 +782,7 @@ def run_results(
 
 
 def run_results_chunks(
-        mouse: d.MouseData, 
-        posterior_allchunks: dict, 
+        mouse: d.MouseData | d.NpxlData, 
         decoded_pos_allchunks: dict,
         num_pbins: int = 46,
         num_chunks: int = 10,
@@ -838,7 +837,7 @@ def run_results_chunks(
     # Confusion Matrices
     confusion_mtx_allchunks = r.generate_confusion_mtx_allchunks(
         mouse,
-        decoded_pos_allchunks,
+        mouse.decoded_pos_allchunks,
         num_pbins,
         num_chunks,
         discrete=discrete

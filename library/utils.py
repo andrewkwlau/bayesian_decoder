@@ -1,6 +1,10 @@
+import sys
+import os
 import numpy as np
 from scipy.ndimage import gaussian_filter1d
 
+sys.path.append(os.path.abspath('../library'))
+import data as d
 
 def get_firstx_pos(position_mtx: np.ndarray, x: int) -> np.ndarray:
     """
@@ -430,27 +434,27 @@ def posbinning_data(
 
 def split_lightdark(data: np.ndarray, darktrials: np.ndarray) -> tuple:
     """
-    Split data matrix into light and dark trials.
+    Split data matrix into lgt and drk trials.
 
     Args:
         data (np.ndarray):
             (Trial, ...) spike probability or discrete spikes or position_mtx data.
 
         darktrials (np.ndarray):
-            (Trial) Array containing trial light/dark info. 0 = light, 1 = dark.
+            (Trial) Array containing trial lgt/drk info. 0 = lgt, 1 = drk.
 
     Returns:
         tuple: a tuple containing:
-            - data_light (np.ndarray):
-                (Trial, Time Bin, Neuron) data in light trials.
+            - data_lgt (np.ndarray):
+                (Trial, Time Bin, Neuron) data in lgt trials.
         
-            - data_dark (np.ndarray):
-                (Trial, Time Bin, Neuron) data in dark trials.
+            - data_drk (np.ndarray):
+                (Trial, Time Bin, Neuron) data in drk trials.
     """
-    data_light = data[np.where(darktrials == 0)[0]]
-    data_dark = data[np.where(darktrials == 1)[0]]
+    data_lgt = data[np.where(darktrials == 0)[0]]
+    data_drk = data[np.where(darktrials == 1)[0]]
 
-    return data_light, data_dark
+    return data_lgt, data_drk
 
 
 def sort_trialstart(
@@ -470,10 +474,10 @@ def sort_trialstart(
             (Trial, Time Bin) position data of the animal.
 
         darktrials (np.ndarray):
-            (Trial) Array containing trial light/dark info. 0 = light, 1 = dark.
+            (Trial) Array containing trial lgt/drk info. 0 = lgt, 1 = drk.
 
         data_condition (str):
-            'all' or 'light' or 'dark'.
+            'all' or 'lgt' or 'drk'.
 
     Returns:
         data_sorted (np.ndarray):
@@ -482,17 +486,17 @@ def sort_trialstart(
     num_trials = data.shape[0]
 
     pos_all = position_mtx
-    pos_light, pos_dark = split_lightdark(position_mtx, darktrials)
+    pos_lgt, pos_drk = split_lightdark(position_mtx, darktrials)
 
     start_location = []
     # Find start location of each trial and apppend them
     for trial in range(num_trials):
         if data_condition == 'all':
             trial_start = pos_all[trial, np.where(~np.isnan(pos_all[trial]))[0][0]]
-        elif data_condition == 'light':
-            trial_start = pos_light[trial, np.where(~np.isnan(pos_light[trial]))[0][0]]
-        elif data_condition == 'dark':
-            trial_start = pos_dark[trial, np.where(~np.isnan(pos_dark[trial]))[0][0]]        
+        elif data_condition == 'lgt':
+            trial_start = pos_lgt[trial, np.where(~np.isnan(pos_lgt[trial]))[0][0]]
+        elif data_condition == 'drk':
+            trial_start = pos_drk[trial, np.where(~np.isnan(pos_drk[trial]))[0][0]]        
         start_location.append(trial_start)      
     
     # Sort trial start location and generate new trial index
@@ -505,54 +509,54 @@ def sort_trialstart(
     return data_sorted
 
 
-def scale_firingrate(fr_light: np.ndarray, fr_dark: np.ndarray) -> tuple:
+def scale_firingrate(fr_lgt: np.ndarray, fr_drk: np.ndarray) -> tuple:
     """
-    Scale fr_light with (mean fr_light / mean fr_dark) and fr_dark with
-    (mean fr_dark / mean fr_light).
+    Scale fr_lgt with (mean fr_lgt / mean fr_drk) and fr_drk with
+    (mean fr_drk / mean fr_lgt).
 
     Args:
-        fr_light (np.ndarray):
-            (Trial, Position Bin, Neuron) firing rates of light trials.
+        fr_lgt (np.ndarray):
+            (Trial, Position Bin, Neuron) firing rates of lgt trials.
 
-        fr_dark (np.ndarray):
-            (Trial, Position Bin, Neuron) firing rates of dark trials.
+        fr_drk (np.ndarray):
+            (Trial, Position Bin, Neuron) firing rates of drk trials.
 
     Returns:
         tuple: a tuple containing:
-            - fr_light_scaled (np.ndarray)
-            - fr_dark_scaled (np.ndarray)
+            - fr_lgt_scaled (np.ndarray)
+            - fr_drk_scaled (np.ndarray)
     """
-    num_neurons = fr_light.shape[2]
+    num_neurons = fr_lgt.shape[2]
 
     # Compute scaling coefficient for each neuron
-    scaling_coefficients_light = []
-    scaling_coefficients_dark = []
+    scaling_coefficients_lgt = []
+    scaling_coefficients_drk = []
     
     for i in range(num_neurons):
-        mean_light = np.nanmean(fr_light[:,:,i])
-        mean_dark = np.nanmean(fr_dark[:,:,i])
+        mean_lgt = np.nanmean(fr_lgt[:,:,i])
+        mean_drk = np.nanmean(fr_drk[:,:,i])
         
-        if mean_light == 0 or mean_dark == 0:
-            coefficient_light_i == 1
-            coefficient_dark_i == 1
+        if mean_lgt == 0 or mean_drk == 0:
+            coefficient_lgt_i == 1
+            coefficient_drk_i == 1
         else:
-            coefficient_light_i = mean_dark / mean_light
-            coefficient_dark_i = mean_light / mean_dark
+            coefficient_lgt_i = mean_drk / mean_lgt
+            coefficient_drk_i = mean_lgt / mean_drk
 
-        scaling_coefficients_light.append(coefficient_light_i)
-        scaling_coefficients_dark.append(coefficient_dark_i)
+        scaling_coefficients_lgt.append(coefficient_lgt_i)
+        scaling_coefficients_drk.append(coefficient_drk_i)
 
     # Scale firing rates
-    fr_light_scaled = fr_light * scaling_coefficients_light
-    fr_dark_scaled = fr_dark * scaling_coefficients_dark
+    fr_lgt_scaled = fr_lgt * scaling_coefficients_lgt
+    fr_drk_scaled = fr_drk * scaling_coefficients_drk
 
-    # Count number of neurons with higher firing rate in dark and vice versa
-    num_higher_in_dark = len([i for i in scaling_coefficients_light if i >= 1])            
-    num_higher_in_light = len([i for i in scaling_coefficients_dark if i >= 1])  
-    print("higher in dark: {} | {} %".format(num_higher_in_dark, (num_higher_in_dark/num_neurons)*100))
-    print("higher in light: {} | {} %".format(num_higher_in_light, (num_higher_in_light/num_neurons)*100))
+    # Count number of neurons with higher firing rate in drk and vice versa
+    num_higher_in_drk = len([i for i in scaling_coefficients_lgt if i >= 1])            
+    num_higher_in_lgt = len([i for i in scaling_coefficients_drk if i >= 1])  
+    print("higher in drk: {} | {} %".format(num_higher_in_drk, (num_higher_in_drk/num_neurons)*100))
+    print("higher in lgt: {} | {} %".format(num_higher_in_lgt, (num_higher_in_lgt/num_neurons)*100))
         
-    return fr_light_scaled, fr_dark_scaled
+    return fr_lgt_scaled, fr_drk_scaled
 
 
 def get_trial_length(position_mtx_masked: np.ndarray) -> np.ndarray:
@@ -613,12 +617,11 @@ def chunk_trials(data: np.ndarray, num_chunks: int) -> list:
 
 
 def sort_and_chunk(
-        data: np.ndarray, 
-        position_mtx: np.ndarray, 
-        darktrials: np.ndarray, 
+        mouse: d.MouseData | d.NpxlData,
+        data: np.ndarray,
         data_condition: str,
-        num_chunks: int,
-        discrete: bool = True
+        discrete: bool = True,
+        num_chunks: int = 10
 ) -> list:
     """
     Sort and chunk trials.
@@ -627,18 +630,20 @@ def sort_and_chunk(
     """
     num_trials = data.shape[0]
 
-    pos_all = position_mtx
-    pos_light, pos_dark = split_lightdark(position_mtx, darktrials)
+    if type(mouse) == d.MouseData:
+        pos_all = mouse.position_mtx
+    pos_lgt = mouse.pos_lgt
+    pos_drk = mouse.pos_drk
 
     start_location = []
     # Find start location of each trial and apppend them
     for trial in range(num_trials):
         if data_condition == 'all':
             trial_start = pos_all[trial, np.where(~np.isnan(pos_all[trial]))[0][0]]
-        elif data_condition == 'light':
-            trial_start = pos_light[trial, np.where(~np.isnan(pos_light[trial]))[0][0]]
-        elif data_condition == 'dark':
-            trial_start = pos_dark[trial, np.where(~np.isnan(pos_dark[trial]))[0][0]]        
+        elif data_condition == 'lgt':
+            trial_start = pos_lgt[trial, np.where(~np.isnan(pos_lgt[trial]))[0][0]]
+        elif data_condition == 'drk':
+            trial_start = pos_drk[trial, np.where(~np.isnan(pos_drk[trial]))[0][0]]        
         start_location.append(trial_start)      
     
     # Sort trial start location and generate new trial index
