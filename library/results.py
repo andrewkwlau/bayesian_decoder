@@ -70,7 +70,7 @@ def generate_confusion_mtx(
 
 
 def generate_confusion_mtx_allchunks(
-        mouse: d.MouseData,
+        mouse: d.CaImgData | d.NpxlData,
         decoded_pos_allchunks: list,
         num_pbins: int,
         num_chunks: int,
@@ -162,7 +162,7 @@ def generate_confusion_mtx_allchunks(
 
 
 def generate_confusion_mtx_perchunk(
-        mouse: d.MouseData,
+        mouse: d.CaImgData | d.NpxlData,
         decoded_pos_chunk: np.ndarray,
         paradigm: str,
         num_pbins: int,

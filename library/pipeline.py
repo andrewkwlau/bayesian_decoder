@@ -10,7 +10,7 @@ import results as r
 
 
 def get_tuning_curves(
-        mouse: d.MouseData,
+        mouse: d.CaImgData,
         x: int = 5, 
         tunnellength: int = 50, 
         SDfrac: float = 0.2, 
@@ -216,7 +216,7 @@ def get_tuning_curves_npxl(
 
 
 def run_decoder(
-        mouse: d.MouseData | d.NpxlData,
+        mouse: d.CaImgData | d.NpxlData | d.NpxlData,
         x: int = 5, 
         tunnellength: int = 50, 
         num_pbins: int = 46, 
@@ -267,7 +267,7 @@ def run_decoder(
 
     """
     # Run wrapper for getting tunning curves
-    if type(mouse) == d.MouseData:
+    if type(mouse) == d.CaImgData | d.NpxlData:
         get_tuning_curves(mouse, x, tunnellength, SDfrac)
     elif type(mouse) == d.NpxlData:
         get_tuning_curves_npxl(mouse, x, tunnellength)
@@ -338,7 +338,7 @@ def run_decoder(
 
 
 def run_decoder_chunks(
-        mouse: d.MouseData | d.NpxlData, 
+        mouse: d.CaImgData | d.NpxlData | d.NpxlData, 
         x: int = 5,
         tunnellength: int = 50, 
         num_pbins: int = 46, 
@@ -390,7 +390,7 @@ def run_decoder_chunks(
 
     """
     # Run wrapper for getting tunning curves
-    if type(mouse) == d.MouseData:
+    if type(mouse) == d.CaImgData | d.NpxlData:
         get_tuning_curves(mouse, x, tunnellength, SDfrac)
     elif type(mouse) == d.NpxlData:
         get_tuning_curves_npxl(mouse, x, tunnellength)
@@ -483,7 +483,7 @@ def run_decoder_chunks(
 
 
 def run_decoder_chance(
-        mouse: d.MouseData, 
+        mouse: d.CaImgData | d.NpxlData, 
         num_reps: int,
         x: int = 5,
         tunnellength: int = 50, 
@@ -659,7 +659,7 @@ def run_decoder_chance(
 
 
 def run_results(
-        mouse: d.MouseData | d.NpxlData, 
+        mouse: d.CaImgData | d.NpxlData | d.NpxlData, 
         num_pbins: int = 46
 ) -> tuple:
     """
@@ -817,7 +817,7 @@ def run_results(
 
 
 def run_results_chunks(
-        mouse: d.MouseData | d.NpxlData, 
+        mouse: d.CaImgData | d.NpxlData | d.NpxlData, 
         decoded_pos_allchunks: dict,
         num_pbins: int = 46,
         num_chunks: int = 10,
@@ -936,7 +936,7 @@ def run_results_chunks(
 
 
 def run_results_chance(
-        mouse: d.MouseData, 
+        mouse: d.CaImgData | d.NpxlData, 
         posterior_allreps: dict, 
         decoded_pos_allreps: dict,
         num_reps: int,
