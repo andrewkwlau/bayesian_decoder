@@ -1,6 +1,8 @@
 import sys
 import os
 import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
 
 sys.path.append(os.path.abspath('../library'))
 import data as d
@@ -1083,8 +1085,8 @@ def pca_preprocess(
 
     # Concatenate all chunks
     if concat_chunks == True or concat_lgtdrk == True:
-        mouse.fr_lgt_concat_chunks = np.concatenate(mouse.fr_lgt_processed, axis=1)
-        mouse.fr_drk_concat_chunks = np.concatenate(mouse.fr_drk_processed, axis=1)
+        mouse.fr_lgt_concat_chunks = np.concatenate(mouse.fr_lgt_processed, axis=1).T
+        mouse.fr_drk_concat_chunks = np.concatenate(mouse.fr_drk_processed, axis=1).T
         print("Concatenated all chunks:")
         print("lgt: ", mouse.fr_lgt_concat_chunks.shape)
         print("drk: ", mouse.fr_drk_concat_chunks.shape)
@@ -1093,6 +1095,43 @@ def pca_preprocess(
     # Concatenate light and dark together
     if concat_lgtdrk == True:
         mouse.fr_lgtdrk_concat = np.concatenate(
-            [mouse.fr_lgt_concat_chunks, mouse.fr_drk_concat_chunks], axis=1)
+            [mouse.fr_lgt_concat_chunks, mouse.fr_drk_concat_chunks], axis=0)
         print("Concatenated light and dark:")
         print("lgtdrk: ", mouse.fr_lgtdrk_concat.shape)
+
+
+def run_pca(
+        data_fit: np.ndarray,
+        data_to_transform: np.ndarray = None,
+        n_components: int = 3
+):
+    """
+    """
+    pca = PCA()
+    pca.fit(data_fit)
+    if data_to_transform is not None:
+        data_reduced = pca.transform(data_to_transform)[:,:n_components]
+    else:
+        data_reduced = pca.transform(data_fit)[:,:n_components]
+
+    csum = np.cumsum(pca.explained_variance_ratio_)
+
+    print("Original data shape:")
+    print(data_fit.shape)
+    print()
+    print("Reduced data shape:")
+    print(data_reduced.shape)
+    print()
+    print(f"Explained variance of the first {n_components} components:")
+    print(pca.explained_variance_ratio_[:n_components])
+    print()
+    print("num of components explaining 50% Var:", np.where(csum > 0.5)[0][0] +1)
+    print("num of components explaining 70% Var:", np.where(csum > 0.7)[0][0] +1)
+    print("num of components explaining 90% Var:", np.where(csum > 0.9)[0][0] +1)
+
+    plt.plot(csum)
+    plt.xlabel('Number of components')
+    plt.ylabel('Cumulative explained variance')
+    plt.show()
+    
+    return pca, data_reduced
