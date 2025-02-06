@@ -82,9 +82,11 @@ def load_data(mouse_ID, tau=None):
 
 
 @dataclass
-class MouseData:
+class CaImgData:
     # Fields created at intialisation
     mouse_ID: str
+    tau: float
+    rewardzone: int | tuple | list
     spikeprob: np.ndarray
     spikes: np.ndarray
     position_mtx: np.ndarray
@@ -94,43 +96,6 @@ class MouseData:
     spikeprob_shuffled: list
     spikes_shuffled: list
 
-    # Fields to be filled in as needed when running decoder pipeline
-    tau: float = None
-    rewardzone: int | tuple | list = None
-
-    mask: np.ndarray = None
-    position_mtx_masked: np.ndarray = None
-    trial_length: np.ndarray = None
-    trial_light: np.ndarray = None
-    trial_dark: np.ndarray = None
-
-    spikes_masked: np.ndarray = None
-    spikes_smoothed: np.ndarray = None
-    spikes_light: np.ndarray = None
-    spikes_dark: np.ndarray = None
-
-    fr: np.ndarray = None
-    fr_light: np.ndarray = None
-    fr_dark: np.ndarray = None
-    fr_light_scaled: np.ndarray = None
-    fr_dark_scaled: np.ndarray = None
-    fr_smoothed: np.ndarray = None
-    fr_light_smoothed: np.ndarray = None
-    fr_dark_smoothed: np.ndarray = None
-    fr_light_scaled_smoothed: np.ndarray = None
-    fr_dark_scaled_smoothed: np.ndarray = None
-    
-    spikeprob_masked: np.ndarray = None
-    spikeprob_smoothed: np.ndarray = None
-    spikeprob_light: np.ndarray = None
-    spikeprob_dark: np.ndarray = None  
-    spikeprob_pbin: np.ndarray = None
-    spikeprob_pbin_light: np.ndarray = None
-    spikeprob_pbin_dark: np.ndarray = None
-    spikeprob_pbin_smoothed_light: np.ndarray = None
-    spikeprob_pbin_smoothed_dark: np.ndarray = None
-
-    
     def __post_init__(self):
         self.show_data()
 
