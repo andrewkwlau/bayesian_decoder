@@ -1005,3 +1005,94 @@ def run_results_chance(
         'errors_allreps': errors_allreps,
     } 
     return results
+
+
+def pca_preprocess(
+        mouse: d.CaImgData,
+        rewardzone: list,
+        num_chunks: int,
+        concat_chunks: bool = True,
+        concat_lgtdrk: bool = False
+) -> None:
+    """
+    Preprocess data for PCA analysis.
+
+    Two steps:
+    (1) Crop reward zone, trial start and trials with NaN position bins
+    (2) Concatenate along trials
+
+    Additional options:
+    (1) Concatenate all chunks
+    (2) Concatenate light and dark trials
+    """
+    mouse.fr_lgt_cropped = []
+    mouse.fr_drk_cropped = []
+
+    mouse.fr_lgt_processed = []
+    mouse.fr_drk_processed = []
+
+    paradigms = ['lgt', 'drk']
+
+    for paradigm in paradigms:
+        if paradigm == 'lgt':
+            data = mouse.fr_lgt_chunks
+        elif paradigm == 'drk':
+            data = mouse.fr_drk_chunks
+
+        data_cropped = []
+        data_processed = []
+
+        for chunk in range(num_chunks):        
+            # Crop reward zone
+            # only 46-49 because firing rates are already binned into 50 pbins
+            cropped_rz = np.delete(data[chunk], rewardzone, axis=1)
+
+            # Crop trial start NaNs
+            # We select the last trial of the chunk because when start positions are
+            # continuous in the females (Qiu, Serena), we take the shortest trial after
+            # sorting. This is to avoid having NaN position bins at the trial start.
+            last_trial = cropped_rz[-1,:,0]
+            # Find the last NaN position bin the beginning of the trial and crop
+            # everything that's before that bin
+            last_nan = np.where(np.isnan(last_trial))[0][-1]
+            cropped_start = cropped_rz[:, last_nan +1:, :]
+            
+            # Crop trials with NaN position bins
+            # In some cases, the mouse skips positions and therefore has NaN bins.
+            trials_to_remove = np.unique(np.where(np.isnan(cropped_start))[0])
+            cropped_nan = np.delete(cropped_start, trials_to_remove, axis=0)
+            data_cropped.append(cropped_nan)
+
+            # Concatenate along trials
+            data_concatenated = np.concatenate(cropped_nan, axis=0).T
+            data_processed.append(data_concatenated)
+
+        if paradigm == 'lgt':
+            mouse.fr_lgt_cropped = data_cropped
+            mouse.fr_lgt_processed = data_processed
+        elif paradigm == 'drk':
+            mouse.fr_drk_cropped = data_cropped
+            mouse.fr_drk_processed = data_processed
+
+        print(f"PCA pre-processing of {paradigm}:")
+        print("      | Cropped             | Concatenated")
+        print("chunk | Trial, Pbin, Neuron | Neuron, Trial x Pbin")
+        for chunk in range(num_chunks):
+            print(chunk, "    |", data_cropped[chunk].shape, "         |", data_processed[chunk].shape)
+        print()
+
+    # Concatenate all chunks
+    if concat_chunks == True or concat_lgtdrk == True:
+        mouse.fr_lgt_concat_chunks = np.concatenate(mouse.fr_lgt_processed, axis=1)
+        mouse.fr_drk_concat_chunks = np.concatenate(mouse.fr_drk_processed, axis=1)
+        print("Concatenated all chunks:")
+        print("lgt: ", mouse.fr_lgt_concat_chunks.shape)
+        print("drk: ", mouse.fr_drk_concat_chunks.shape)
+        print()
+
+    # Concatenate light and dark together
+    if concat_lgtdrk == True:
+        mouse.fr_lgtdrk_concat = np.concatenate(
+            [mouse.fr_lgt_concat_chunks, mouse.fr_drk_concat_chunks], axis=1)
+        print("Concatenated light and dark:")
+        print("lgtdrk: ", mouse.fr_lgtdrk_concat.shape)
