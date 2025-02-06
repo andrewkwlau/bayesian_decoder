@@ -13,7 +13,7 @@ def get_tuning_curves(
         mouse: d.MouseData,
         x: int = 5, 
         tunnellength: int = 50, 
-        SDsize: float = 0.2, 
+        SDfrac: float = 0.2, 
 ):
     """
     Wrapper function for getting tuning curves. Does the following for both 
@@ -36,8 +36,8 @@ def get_tuning_curves(
             Number of position bins in full tunnel (including reward zone) for
             position binnning the spikes into spatial tuning curves.
 
-        SDsize (float):
-            Equivalent to SDsize in MATLAB smoothdata. Used to compute
+        SDfrac (float):
+            Equivalent to SDfrac in MATLAB smoothdata. Used to compute
             gaussian kernel standard deviation (sigma).
 
     Returns:
@@ -60,6 +60,7 @@ def get_tuning_curves(
         mouse.firstx_pos
     )  
     mouse.spikes_masked = u.mask_spikes(mouse.spikes, mouse.mask)
+    mouse.spikeprob_masked = u.mask_spikes(mouse.spikeprob, mouse.mask)
     
     # Get trial length
     print("2. Getting trial length.")
@@ -68,14 +69,36 @@ def get_tuning_curves(
 
     # Smooth data with Gaussian filter
     print("3. Smoothing spikes.")
-    sigma = u.compute_sigma(mouse.tau, SDsize=SDsize)
+    sigma = u.compute_sigma(mouse.tau, SDfrac=SDfrac)
     mouse.spikes_smoothed = u.gaussiansmooth_spikes(mouse.spikes_masked, mouse.mask, sigma)
+    mouse.spikeprob_smoothed = u.gaussiansmooth_spikes(mouse.spikeprob_masked, mouse.mask, sigma)
 
     # Position binning and generating firing rates
     print("4. Position Binning data and generating firing rates.")
+    mouse.fr = u.posbinning_data(
+        mouse.spikes_masked, 
+        'spikes', 
+        mouse.position_mtx_masked, 
+        tunnellength, 
+        mouse.tau
+    )
     mouse.fr_smoothed = u.posbinning_data(
         mouse.spikes_smoothed, 
         'spikes', 
+        mouse.position_mtx_masked, 
+        tunnellength, 
+        mouse.tau
+    )
+    mouse.spikeprob_pbin = u.posbinning_data(
+        mouse.spikeprob_masked, 
+        'spikeprob', 
+        mouse.position_mtx_masked, 
+        tunnellength, 
+        mouse.tau
+    )
+    mouse.spikeprob_pbin_smoothed = u.posbinning_data(
+        mouse.spikeprob_smoothed, 
+        'spikeprob', 
         mouse.position_mtx_masked, 
         tunnellength, 
         mouse.tau
@@ -95,10 +118,22 @@ def get_tuning_curves(
         mouse.spikes_masked, 
         mouse.darktrials
     )
+    mouse.fr_lgt, mouse.fr_drk = u.split_lightdark(
+        mouse.fr, 
+        mouse.darktrials
+    )  
     mouse.fr_lgt_smoothed, mouse.fr_drk_smoothed = u.split_lightdark(
         mouse.fr_smoothed, 
         mouse.darktrials
-    )  
+    )
+    mouse.spikeprob_fr_lgt, mouse.spikeprob_fr_drk = u.split_lightdark(
+        mouse.spikeprob_pbin,
+        mouse.darktrials
+    )
+    mouse.spikeprob_fr_lgt_smoothed, mouse.spikeprob_fr_drk_smoothed = u.split_lightdark(
+        mouse.spikeprob_pbin_smoothed,
+        mouse.darktrials
+    )
 
     # Scale firing rates
     print("6. Scaling firing rates.")
@@ -185,7 +220,7 @@ def run_decoder(
         x: int = 5, 
         tunnellength: int = 50, 
         num_pbins: int = 46, 
-        SDsize: float = 0.2, 
+        SDfrac: float = 0.2, 
         scale: bool = True,
         uniformprior: bool = False
 ) -> tuple:
@@ -209,8 +244,8 @@ def run_decoder(
         smooth (bool):
             Whether spikes are smoothed to generate firing rates. Default True.
 
-        SDsize (float):
-            Equivalent to SDsize in MATLAB smoothdata. Used to compute
+        SDfrac (float):
+            Equivalent to SDfrac in MATLAB smoothdata. Used to compute
             gaussian kernel standard deviation (sigma).
 
         scale (bool):
@@ -233,7 +268,7 @@ def run_decoder(
     """
     # Run wrapper for getting tunning curves
     if type(mouse) == d.MouseData:
-        get_tuning_curves(mouse, x, tunnellength, SDsize)
+        get_tuning_curves(mouse, x, tunnellength, SDfrac)
     elif type(mouse) == d.NpxlData:
         get_tuning_curves_npxl(mouse, x, tunnellength)
 
@@ -307,7 +342,7 @@ def run_decoder_chunks(
         x: int = 5,
         tunnellength: int = 50, 
         num_pbins: int = 46, 
-        SDsize: float = 0.2, 
+        SDfrac: float = 0.2, 
         scale: bool = True,
         uniformprior: bool = False,
         discrete: bool = True,
@@ -356,7 +391,7 @@ def run_decoder_chunks(
     """
     # Run wrapper for getting tunning curves
     if type(mouse) == d.MouseData:
-        get_tuning_curves(mouse, x, tunnellength, SDsize)
+        get_tuning_curves(mouse, x, tunnellength, SDfrac)
     elif type(mouse) == d.NpxlData:
         get_tuning_curves_npxl(mouse, x, tunnellength)
 
@@ -453,7 +488,7 @@ def run_decoder_chance(
         x: int = 5,
         tunnellength: int = 50, 
         num_pbins: int = 46, 
-        SDsize: float = 0.2, 
+        SDfrac: float = 0.2, 
         scale: bool = True,
         uniformprior: bool = False,
         discrete: bool = True,
@@ -497,7 +532,7 @@ def run_decoder_chance(
 
         # Smooth data with Gaussian filter
         print("3. Smoothing spikes.")
-        sigma = u.compute_sigma(mouse.tau, SDsize=SDsize)
+        sigma = u.compute_sigma(mouse.tau, SDfrac=SDfrac)
         spikes_smoothed = u.gaussiansmooth_spikes(spikes_masked, mask, sigma)
 
         # Position binning and generating firing rates
