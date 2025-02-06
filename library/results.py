@@ -200,13 +200,14 @@ def generate_confusion_mtx_perchunk(
     """
     confusion_mtx_chunk = np.zeros((num_pbins,num_pbins))
 
+    # Chunk position matrix
+    pos_light_chunks = u.sort_and_chunk(mouse, mouse.pos_lgt_masked, 'lgt', discrete, num_chunks)
+    pos_dark_chunks = u.sort_and_chunk(mouse, mouse.pos_drk_masked, 'drk', discrete, num_chunks)
+
     # Specify true position and predicted position
-    pos_light, pos_dark = u.split_lightdark(mouse.position_mtx_masked, mouse.darktrials)
     if paradigm == 'lgtlgt' or paradigm == 'drklgt':
-        pos_light_chunks = u.sort_and_chunk(pos_light, mouse.position_mtx, mouse.darktrials, 'light', num_chunks, discrete=discrete)
         true = pos_light_chunks[chunk_idx]
     elif paradigm == 'drkdrk' or paradigm == 'lgtdrk':
-        pos_dark_chunks = u.sort_and_chunk(pos_dark, mouse.position_mtx, mouse.darktrials, 'dark', num_chunks, discrete=discrete)
         true = pos_dark_chunks[chunk_idx]
     pred = decoded_pos_chunk
         
