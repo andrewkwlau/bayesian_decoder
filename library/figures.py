@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 sys.path.append(os.path.abspath('../library'))
 import data as d
@@ -390,3 +392,80 @@ def plot_errors(
         )
 
     plt.show()
+
+
+def plot_pca_3d(
+        mouse,
+        num_chunks: int,
+        trial_avg: bool = False
+):
+    """
+    """
+    chunk_titles = np.sort([f'Chunk {i}' for i in range(num_chunks)] * 2)
+
+    # Create a subplot figure with 10 rows, 2 columns (one column for each condition)
+    fig = make_subplots(rows=10, cols=2, 
+                        shared_xaxes=True,
+                        subplot_titles=chunk_titles,
+                        specs=[[{'type': 'scatter3d'}, {'type': 'scatter3d'}]] * 10,
+                        vertical_spacing=0.01)
+    
+    # Loop through chunks
+    for chunk in range(num_chunks):
+        data_lgt = mouse.fr_lgt_reconstructed
+        data_drk = mouse.fr_drk_reconstructed
+
+        # Loop through each trial and add a scatter plot for the points
+        for trial in range(data_lgt[chunk].shape[0]):
+            if trial_avg == True:
+                x = np.nanmean(data_lgt[chunk], axis=0)[:, 0]
+                y = np.nanmean(data_lgt[chunk], axis=0)[:, 1]
+                z = np.nanmean(data_lgt[chunk], axis=0)[:, 2]
+            else:
+                x = data_lgt[chunk][trial, :, 0]
+                y = data_lgt[chunk][trial, :, 1]
+                z = data_lgt[chunk][trial, :, 2]
+
+            # Create a gradient color based on the index
+            colors = np.linspace(0, 1, len(x))  # Normalized from 0 to 1
+
+            # Add trace to the correct subplot (row=chunk+1 since indexing starts from 1)
+            fig.add_trace(go.Scatter3d(
+                x=x, y=y, z=z,
+                marker=dict(size=2, color=colors, colorscale='Viridis'),
+                line=dict(color=colors, colorscale='Viridis', width=3),
+                mode='lines+markers'
+            ), row=chunk+1, col=1)
+
+        # Loop through each trial and add a scatter plot for the points
+        for trial in range(data_drk[chunk].shape[0]):
+            if trial_avg == True:
+                x = np.nanmean(data_drk[chunk], axis=0)[:, 0]
+                y = np.nanmean(data_drk[chunk], axis=0)[:, 1]
+                z = np.nanmean(data_drk[chunk], axis=0)[:, 2]
+            else:
+                x = data_drk[chunk][trial, :, 0]
+                y = data_drk[chunk][trial, :, 1]
+                z = data_drk[chunk][trial, :, 2]
+
+            # Create a gradient color based on the index
+            colors = np.linspace(0, 1, len(x))  # Normalized from 0 to 1
+
+            # Add trace to the correct subplot (row=chunk+1 since indexing starts from 1)
+            fig.add_trace(go.Scatter3d(
+                x=x, y=y, z=z,
+                marker=dict(size=2, color=colors, colorscale='Viridis'),
+                line=dict(color=colors, colorscale='Viridis', width=3),
+                mode='lines+markers'
+            ), row=chunk+1, col=2)
+        
+    # Update layout
+    fig.update_layout(
+        height=4000,  # Adjust height to fit all subplots
+        width=1000,
+        title=f'Plot of Light and Dark PCA Components for {mouse.mouse_ID}',
+        showlegend=False
+    )
+
+    # Show the figure
+    fig.show()
