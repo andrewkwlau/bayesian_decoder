@@ -1135,3 +1135,65 @@ def run_pca(
     plt.show()
     
     return pca, data_reduced
+
+
+def pca_postprocess(mouse, num_chunks, n_components):
+    """
+    """
+
+    if getattr(mouse, 'fr_lgtdrk_reduced', None) is not None:
+        # Split light and dark components
+        data_reduced_lgt, data_reduced_drk = np.split(
+            mouse.fr_lgtdrk_reduced, [mouse.fr_lgt_concat_chunks.shape[0]], axis=0)
+        datasets = {"lgt": data_reduced_lgt, "drk": data_reduced_drk}
+        print("Post-processing mouse.fr_lgtdrk_reduced")
+    else:
+        datasets = {"lgt": mouse.fr_lgt_reduced, "drk": mouse.fr_drk_reduced}
+        print("Post-processing mouse.fr_lgt_reduced and mouse.fr_drk_reduced")
+
+    output = {}
+    
+    for paradigm, data in datasets.items():
+        # Find indices to split data
+        chunk_sizes = [mouse.fr_lgt_processed[i].shape[1] if paradigm == "lgt"
+                       else mouse.fr_drk_processed[i].shape[1] for i in range(num_chunks)]
+        split_indices = np.cumsum(chunk_sizes[:-1])
+
+        print(f"Chunk sizes ({paradigm}):", chunk_sizes)
+
+        # Split reduced data into chunks
+        data_split = np.split(data, split_indices, axis=0)
+        data_cropped = getattr(mouse, f"fr_{paradigm}_cropped")
+
+        # Reshape data into Trials x Pbins
+        data_reshaped = []
+        for i in range(num_chunks):
+            chunk_reshaped = data_split[i].reshape(
+                data_cropped[i].shape[0],
+                data_cropped[i].shape[1],
+                n_components
+            )
+            data_reshaped.append(chunk_reshaped)
+
+        # Pad NaNs to trial start and rewardzone
+        data_padded = []
+        max_pbins = max(chunk.shape[1] for chunk in data_reshaped)
+        for chunk in data_reshaped:
+            # Find diff between the len of chunk and the longest chunk
+            pad_size = max_pbins - chunk.shape[1]
+            # Add NaNs to first 5 bins (trial start) and last 4 bins (rewardzone)
+            pad_width = [(0, 0), (pad_size+5, 4), (0, 0)]
+            chunk_padded = np.pad(chunk, pad_width, mode='constant', constant_values=np.nan)
+            data_padded.append(chunk_padded)
+   
+        output[paradigm] = data_padded
+
+        print(f"PCA post-processing of {paradigm}:")
+        print("      | Before             | Reshaped")
+        print("chunk | Trial x Pbin, Component | Trial, Pbin, Component")
+        for chunk in range(num_chunks):
+            print(chunk, "    |", data_split[chunk].shape, "         |", data_padded[chunk].shape)
+        print()
+
+    mouse.fr_lgt_reconstructed = output['lgt']
+    mouse.fr_drk_reconstructed = output['drk']
