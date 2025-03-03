@@ -84,7 +84,7 @@ def bayesian_decoder(
         # (Time Bin, Neuron)  
         spikecount = testing_spikes[test_trial]    # spike count of test trial
         nfac = factorial(spikecount, exact=True)   # n!
-        log_nfac = np.log(nfac)                    # log(n!)
+        log_nfac = np.log(nfac.astype(float))      # log(n!)
 
         # (Position Bin, Neuron)
         fx = np.nanmean(firingrate, axis=0)        # mean firing rate across trials
@@ -227,7 +227,7 @@ def bayesian_decoder_chunks(
         # (Time Bin, Neuron)  
         spikecount = testing_spikes_chunk[test_trial]   # spike count of test trial
         nfac = factorial(spikecount, exact=True)        # n!
-        log_nfac = np.log(nfac)                         # log(n!)
+        log_nfac = np.log(nfac.astype(float))           # log(n!)
 
         # (Position Bin, Neuron)
         fx = np.nanmean(firingrate, axis=0)        # mean firing rate across trials
