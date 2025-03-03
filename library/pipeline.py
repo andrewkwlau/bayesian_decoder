@@ -1103,16 +1103,22 @@ def pca_preprocess(
 def run_pca(
         data_fit: np.ndarray,
         data_to_transform: np.ndarray = None,
-        n_components: int = 3
+        n_components: int = None
 ):
     """
     """
     pca = PCA()
     pca.fit(data_fit)
     if data_to_transform is not None:
-        data_reduced = pca.transform(data_to_transform)[:,:n_components]
+        if n_components is None:
+            data_reduced = pca.transform(data_to_transform)
+        else:
+            data_reduced = pca.transform(data_to_transform)[:,:n_components]
     else:
-        data_reduced = pca.transform(data_fit)[:,:n_components]
+        if n_components is None:
+            data_reduced = pca.transform(data_fit)
+        else:
+            data_reduced = pca.transform(data_fit)[:,:n_components]
 
     csum = np.cumsum(pca.explained_variance_ratio_)
 
