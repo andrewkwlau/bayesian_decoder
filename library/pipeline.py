@@ -918,17 +918,20 @@ def run_results_chunks(
     # Compute and store mean accuracy and mean error across chunks
     mean_accuracy = {paradigm:[] for paradigm in paradigms}
     mean_error = {paradigm:[] for paradigm in paradigms}
+    median_error = {paradigm:[] for paradigm in paradigms}
     for paradigm in paradigms:
         mean_accuracy[paradigm].append(np.nanmean(accuracy_allchunks[paradigm]))
         mean_accuracy[paradigm] = mean_accuracy[paradigm][0]
         mean_error[paradigm].append(np.nanmean(errors_allchunks[paradigm]))
         mean_error[paradigm] = mean_error[paradigm][0]
-        
+        median_error[paradigm].append(np.nanmedian(errors_allchunks[paradigm]))
+        median_error[paradigm] = median_error[paradigm][0]
 
     results = {
         'confusion_mtx': confusion_mtx_allchunks,
         'mean_accuracy': mean_accuracy,
         'mean_error': mean_error,
+        'median_error': median_error,
         'accuracy_allchunks': accuracy_allchunks,
         'errors_allchunks': errors_allchunks,
         'mse_allchunks': mse_allchunks,
