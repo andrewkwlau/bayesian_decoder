@@ -449,6 +449,9 @@ def compute_errors_chunk(
     # Absolute errors between decoded position and true positions, taking into
     # consideration only the time bins where decoded position is non-NaN
     errors_chunk = abs(np.subtract(decoded_pos_chunk[predictions], true[predictions]))
+    # If there are no decoded_pos therefore no errors, set it to NaN
+    if errors_chunk.size == 0:
+        errors_chunk = np.append(errors_chunk, np.nan)
 
     min_error = np.nanmin(errors_chunk)
     max_error = np.nanmax(errors_chunk)
