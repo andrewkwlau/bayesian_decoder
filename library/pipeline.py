@@ -3,6 +3,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
+from collections import Counter
 
 sys.path.append(os.path.abspath('../library'))
 import data as d
@@ -819,8 +820,7 @@ def run_results(
 
 
 def run_results_chunks(
-        mouse: d.CaImgData | d.NpxlData | d.NpxlData, 
-        decoded_pos_allchunks: dict,
+        mouse: d.CaImgData | d.NpxlData, 
         num_pbins: int = 46,
         num_chunks: int = 10,
         discrete: bool = True
@@ -831,23 +831,20 @@ def run_results_chunks(
     Args:
         mouse (MouseData):
             An instance of class MouseData. Identify which mouse's data to use.
-        
-        posterior_all (dict):
-            A dictionary of posterior outputs for all training paradigms:
-            'lgtlgt', 'drkdrk', 'lgtdrk', 'drklgt'
-
-        decoded_pos_all (dict):
-            A dictionary of decoded positions outputs for all trianing paradigms:
-            'lgtlgt', 'drkdrk', 'lgtdrk', 'drklgt'
 
         num_pbins (int):
             Number of position bins to generate confusion matrix (excluding the reward zone).
 
+        num_chunks (int):
+            Number of chunks of trials.
+
+        discrete: (bool):
+            Whether to chunk trials in discrete or continuous manner.
+
     Returns:
         dict: a dict containing:
             - confusion_mtx_allchunks (dict):
-                a dict containing the confusion matrices (np.ndarray): 
-                'lgtlgt', 'drkdrk', 'lgtdrk', 'drklgt'
+                a dict containing the confusion matrices (np.ndarray) of each paradigm
 
             - mean_accuracy (dict):
                 a dict containing the mean accuracy (float) across chunks of each paradigm
@@ -855,87 +852,94 @@ def run_results_chunks(
             - mean_error (dict):
                 a dict containing the mean error (flaot) across chunks of each paradigm
 
-            - accuracy_allchunks (list):
-                a list containing the accuracy values (float) in each chunk (dict): 
-                'lgtlgt', 'drkdrk', 'lgtdrk', 'drklgt'
+            - median_error (dict):
+                a dict containing the median error (float) across chunks of each paradigm
 
-            - errors_allchunks (list):
-                a list containing the errors (np.ndarray) in each chunk (dict): 
-                'lgtlgt', 'drkdrk', 'lgtdrk', 'drklgt'
+            - rt_mse (dict):
+                a dict containing the root mean squared error (float) across chunks of each paradigm
 
-            - mse_allchunks (list):
-                a list containing the Mean Squared Errors (float) in each chunk (dict): 
-                'lgtlgt', 'drkdrk', 'lgtdrk', 'drklgt'
+            - most_freq_mean_error (dict):
+                a dict containing the mean error (float) of the most frequently decoded position of each paradigm
 
-            - rt_mse_allchunks (list):
-                a list containing the Root Mean Squared Errors (float) in each chunk (dict): 
-                'lgtlgt', 'drkdrk', 'lgtdrk', 'drklgt'
     """  
-    # Confusion Matrices
-    confusion_mtx_allchunks = r.generate_confusion_mtx_allchunks(
-        mouse,
-        mouse.decoded_pos_allchunks,
-        num_pbins,
-        num_chunks,
-        discrete=discrete
-    )
+    # Chunk position matrix
+    mouse.pos_lgt_chunks = u.sort_and_chunk(mouse, mouse.pos_lgt_masked, 'lgt', discrete, num_chunks)
+    mouse.pos_drk_chunks = u.sort_and_chunk(mouse, mouse.pos_drk_masked, 'drk', discrete, num_chunks)
 
+    # Intialise output
     paradigms = ['lgtlgt', 'drkdrk', 'lgtdrk', 'drklgt']
+    confusion_mtx_allchunks = {paradigm: np.zeros((num_pbins, num_pbins)) for paradigm in paradigms}
+    accuracy_mtx = {paradigm: [] for paradigm in paradigms}
+    mean_accuracy = {paradigm: [] for paradigm in paradigms}
+    errors = {paradigm: [] for paradigm in paradigms}
+    mean_error = {paradigm: [] for paradigm in paradigms}
+    median_error = {paradigm: [] for paradigm in paradigms}
+    rt_mse = {paradigm: [] for paradigm in paradigms}
+    all_predictions = {paradigm: {pos: [] for pos in range(num_pbins)} for paradigm in paradigms}
+    most_freq_predictions = {paradigm: {pos: [] for pos in range(num_pbins)} for paradigm in paradigms}
+    most_freq_errors = {paradigm: {pos: [] for pos in range(num_pbins)} for paradigm in paradigms}
+    most_freq_mean_error = {paradigm: [] for paradigm in paradigms}
 
-    # Initialise dict for storing accuracy and error values for all chunks
-    accuracy_allchunks = {paradigm:[] for paradigm in paradigms}
-    errors_allchunks = {paradigm:[] for paradigm in paradigms}
-    mse_allchunks = {paradigm:[] for paradigm in paradigms}
-    rt_mse_allchunks = {paradigm:[] for paradigm in paradigms}
-
-    # Compute accuracy and errors for each chunk
-    for i in range(num_chunks):
-        for paradigm in paradigms:
-            print("Accuracy chunk", i, paradigm, ":")
-            accuracy = r.compute_accuracy_chunk(
-                mouse,
-                decoded_pos_allchunks[i][paradigm],
-                paradigm,
-                num_chunks,
-                i,
-                discrete=discrete
-            )
-            print()
-            print("Errors chunk", i, paradigm, ":")
-            errors, mse, rt_mse = r.compute_errors_chunk(
-                mouse,
-                decoded_pos_allchunks[i][paradigm],
-                paradigm,
-                num_chunks,
-                i,
-                discrete=discrete
-            )
-            accuracy_allchunks[paradigm].append(accuracy)
-            errors_allchunks[paradigm] += errors.tolist()
-            mse_allchunks[paradigm].append(mse)
-            rt_mse_allchunks[paradigm].append(rt_mse)
-
-    # Compute and store mean accuracy and mean error across chunks
-    mean_accuracy = {paradigm:[] for paradigm in paradigms}
-    mean_error = {paradigm:[] for paradigm in paradigms}
-    median_error = {paradigm:[] for paradigm in paradigms}
+    # Loop through each paradigm and chunk
     for paradigm in paradigms:
-        mean_accuracy[paradigm].append(np.nanmean(accuracy_allchunks[paradigm]))
-        mean_accuracy[paradigm] = mean_accuracy[paradigm][0]
-        mean_error[paradigm].append(np.nanmean(errors_allchunks[paradigm]))
-        mean_error[paradigm] = mean_error[paradigm][0]
-        median_error[paradigm].append(np.nanmedian(errors_allchunks[paradigm]))
-        median_error[paradigm] = median_error[paradigm][0]
+        for chunk in range(num_chunks):
+            # Set true position
+            if paradigm == 'lgtlgt' or paradigm == 'drklgt':
+                true = mouse.pos_lgt_chunks[chunk]
+            elif paradigm == 'drkdrk' or paradigm == 'lgtdrk':
+                true = mouse.pos_drk_chunks[chunk]
+            # Set predicted position and create mask for time bins where there are predictions
+            pred = mouse.decoded_pos_allchunks[chunk][paradigm]
+            pred_mask = ~np.isnan(pred)
+
+            # True/False matrix of pred pos == true pos, where there are decoder predictions
+            accuracy_mtx[paradigm].extend(pred[pred_mask] == true[pred_mask])
+
+            # Compute error for each time bin where there are decoder predictions
+            errors[paradigm].extend(abs(np.subtract(pred[pred_mask], true[pred_mask])))
+
+            # For each true position bin y
+            for pos in range(num_pbins):        
+                # Find time bins where true pos is y
+                true_pos_tbins = list(zip(*np.where(true == pos)))
+                # Find corresponding predicted positions in those time bins excluding NaNs
+                predictions = [pred[i] for i in true_pos_tbins if not np.isnan(pred[i])]
+                all_predictions[paradigm][pos].extend(predictions)
+
+                # Get frequency of each predicted pos and compute % of total predictions for confusion matrix
+                total_num_predictions = len(all_predictions[paradigm][pos])
+                prediction_count_for_pos = Counter(all_predictions[paradigm][pos])
+                for x, count in prediction_count_for_pos.items():
+                    confusion_mtx_allchunks[paradigm][int(pos), int(x)] = count / total_num_predictions
+
+                # Find most frequently decoded position for true position y and their respective errors
+                if not prediction_count_for_pos:
+                    most_freq_predictions[paradigm][pos] = np.nan
+                else:
+                    max_count = max(prediction_count_for_pos.values())
+                    most_freq_predictions[paradigm][pos] = [pred for pred, count in prediction_count_for_pos.items() if count == max_count]
+                    most_freq_errors[paradigm][pos] = [abs(pos - pred) for pred in most_freq_predictions[paradigm][pos]]
+                    most_freq_errors[paradigm][pos] = np.nanmean(most_freq_errors[paradigm][pos])
+        
+        # Compute accuracy rate
+        mean_accuracy[paradigm] = np.sum(accuracy_mtx[paradigm]) / len(accuracy_mtx[paradigm])
+
+        # Compute mean error, median error and root MSE
+        mean_error[paradigm] = np.nanmean(errors[paradigm])
+        median_error[paradigm] = np.nanmedian(errors[paradigm])
+        rt_mse[paradigm] = np.sqrt(np.nanmean(np.square(errors[paradigm])))
+
+        # Compute mean error for most frequently decoded position
+        most_freq_errors[paradigm] = np.array([v for v in most_freq_errors[paradigm].values() if isinstance(v, (int, float))])
+        most_freq_mean_error[paradigm] = np.nanmean(most_freq_errors[paradigm])
 
     results = {
         'confusion_mtx': confusion_mtx_allchunks,
         'mean_accuracy': mean_accuracy,
         'mean_error': mean_error,
         'median_error': median_error,
-        'accuracy_allchunks': accuracy_allchunks,
-        'errors_allchunks': errors_allchunks,
-        'mse_allchunks': mse_allchunks,
-        'rt_mse_allchunks': rt_mse_allchunks
+        'rt_mse': rt_mse,
+        'most_freq_mean_error': most_freq_mean_error
     }  
     return results
 
