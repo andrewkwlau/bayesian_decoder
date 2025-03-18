@@ -10,8 +10,6 @@ from plotly.subplots import make_subplots
 sys.path.append(os.path.abspath('../library'))
 import data as d
 import utils as u
-import results as r
-
 
 def plot_single_tuning(
         mouse: d.CaImgData | d.NpxlData,
@@ -227,7 +225,7 @@ def plot_confusion_mtx(
     fig.tight_layout(pad=3)
 
     # Plot
-    im1 = ax1.imshow(confusion_mtx, cmap="turbo", vmax=0.5)
+    im1 = ax1.imshow(confusion_mtx, cmap="turbo", vmax=1)
 
     # Figure Settings
     ax_settings = {
