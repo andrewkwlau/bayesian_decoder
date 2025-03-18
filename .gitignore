@@ -13,6 +13,8 @@ datafiles/Neuropixel
 library/.DS_Store
 library/__pycache__
 
+obsolete
+
 scripts/.DS_Store
 scripts/chance.ipynb
 scripts/main.ipynb
