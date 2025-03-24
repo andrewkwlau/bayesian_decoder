@@ -414,8 +414,9 @@ def run_decoder_chunks(
     num_chunks = len(spikes_lgt_chunks)
 
     # Intialise output
-    posterior_allchunks = []
-    decoded_pos_allchunks = []
+    paradigms = ['lgtlgt', 'drkdrk', 'lgtdrk', 'drklgt']
+    posterior = {paradigm : [] for paradigm in paradigms}
+    decoded_pos = {paradigm : [] for paradigm in paradigms}
 
     # Decoder training set options
     print("7. Running decoder...")
@@ -430,8 +431,11 @@ def run_decoder_chunks(
 
     # Loop through each chunk
     for i in range(num_chunks):
+        posterior_chunk = {paradigm: [] for paradigm in paradigms}
+        decoded_pos_chunk = {paradigm: [] for paradigm in paradigms}
+
         print("Decoding chunk ", i, "...")
-        posterior_lgtlgt, decoded_pos_lgtlgt = b.bayesian_decoder_chunks(
+        posterior_chunk['lgtlgt'], decoded_pos_chunk['lgtlgt'] = b.bayesian_decoder_chunks(
             mouse,
             training_lgtlgt[i],
             spikes_lgt_chunks[i],
@@ -440,7 +444,7 @@ def run_decoder_chunks(
             uniformprior
         )
         print("Chunk ", i, " lgtlgt completed.")
-        posterior_drkdrk, decoded_pos_drkdrk = b.bayesian_decoder_chunks(
+        posterior_chunk['drkdrk'], decoded_pos_chunk['drkdrk'] = b.bayesian_decoder_chunks(
             mouse,
             training_drkdrk[i],
             spikes_drk_chunks[i],
@@ -449,7 +453,7 @@ def run_decoder_chunks(
             uniformprior
         )
         print("Chunk ", i, " drkdrk completed.")
-        posterior_lgtdrk, decoded_pos_lgtdrk = b.bayesian_decoder_chunks(
+        posterior_chunk['lgtdrk'], decoded_pos_chunk['lgtdrk'] = b.bayesian_decoder_chunks(
             mouse,
             training_lgtdrk[i],
             spikes_drk_chunks[i],
@@ -458,7 +462,7 @@ def run_decoder_chunks(
             uniformprior
         )
         print("Chunk ", i, " lgtdrk completed.")
-        posterior_drklgt, decoded_pos_drklgt = b.bayesian_decoder_chunks(
+        posterior_chunk['drklgt'], decoded_pos_chunk['drklgt'] = b.bayesian_decoder_chunks(
             mouse,
             training_drklgt[i],
             spikes_lgt_chunks[i],
@@ -468,23 +472,15 @@ def run_decoder_chunks(
         )
         print("Chunk ", i, " drklgt completed.")
 
-        # Output
-        posterior_chunk = {
-            'lgtlgt': posterior_lgtlgt,
-            'drkdrk': posterior_drkdrk,
-            'lgtdrk': posterior_lgtdrk,
-            'drklgt': posterior_drklgt
-        }     
-        decoded_pos_chunk = {
-            'lgtlgt': decoded_pos_lgtlgt,
-            'drkdrk': decoded_pos_drkdrk,
-            'lgtdrk': decoded_pos_lgtdrk,
-            'drklgt': decoded_pos_drklgt
-        }
-        posterior_allchunks.append(posterior_chunk)
-        decoded_pos_allchunks.append(decoded_pos_chunk)
+        for paradigm in paradigms:
+            posterior[paradigm].append(posterior_chunk[paradigm])
+            decoded_pos[paradigm].append(decoded_pos_chunk[paradigm])
 
-    return posterior_allchunks, decoded_pos_allchunks
+    for paradigm in paradigms:
+        posterior[paradigm] = np.concatenate(posterior[paradigm], axis=0)
+        decoded_pos[paradigm] = np.concatenate(decoded_pos[paradigm], axis=0)
+        
+    return posterior, decoded_pos
 
 
 def run_decoder_chance(
@@ -569,8 +565,9 @@ def run_decoder_chance(
         fr_drk_scaled_smoothed_chunks = u.sort_and_chunk(mouse, fr_drk_scaled_smoothed, 'drk', discrete, num_chunks)
 
         # Intialise output
-        posterior_allchunks = []
-        decoded_pos_allchunks = []
+        paradigms = ['lgtlgt', 'drkdrk', 'lgtdrk', 'drklgt']
+        posterior_rep = {paradigm : [] for paradigm in paradigms}
+        decoded_pos_rep = {paradigm : [] for paradigm in paradigms}
 
         # Decoder training set options
         print("8. Running decoder...")
@@ -585,8 +582,11 @@ def run_decoder_chance(
 
         # Loop through each chunk
         for i in range(num_chunks):
+            posterior_chunk = {paradigm: [] for paradigm in paradigms}
+            decoded_pos_chunk = {paradigm: [] for paradigm in paradigms}
+
             print("Decoding rep ", rep, " chunk ", i, "...")
-            posterior_lgtlgt, decoded_pos_lgtlgt = b.bayesian_decoder_chunks(
+            posterior_chunk['lgtlgt'], decoded_pos_chunk['lgtlgt'] = b.bayesian_decoder_chunks(
                 mouse,
                 training_lgtlgt[i],
                 spikes_lgt_chunks[i],
@@ -595,7 +595,7 @@ def run_decoder_chance(
                 uniformprior
             )
             print("Rep ", rep, "Chunk ", i, "lgtlgt completed.")
-            posterior_drkdrk, decoded_pos_drkdrk = b.bayesian_decoder_chunks(
+            posterior_chunk['drkdrk'], decoded_pos_chunk['drkdrk'] = b.bayesian_decoder_chunks(
                 mouse,
                 training_drkdrk[i],
                 spikes_drk_chunks[i],
@@ -604,7 +604,7 @@ def run_decoder_chance(
                 uniformprior
             )
             print("Rep ", rep, "Chunk ", i, "drkdrk completed.")
-            posterior_lgtdrk, decoded_pos_lgtdrk = b.bayesian_decoder_chunks(
+            posterior_chunk['lgtdrk'], decoded_pos_chunk['lgtdrk'] = b.bayesian_decoder_chunks(
                 mouse,
                 training_lgtdrk[i],
                 spikes_drk_chunks[i],
@@ -613,7 +613,7 @@ def run_decoder_chance(
                 uniformprior
             )
             print("Rep ", rep, "Chunk ", i, "lgtdrk completed.")
-            posterior_drklgt, decoded_pos_drklgt = b.bayesian_decoder_chunks(
+            posterior_chunk['drklgt'], decoded_pos_chunk['drklgt'] = b.bayesian_decoder_chunks(
                 mouse,
                 training_drklgt[i],
                 spikes_lgt_chunks[i],
@@ -623,24 +623,16 @@ def run_decoder_chance(
             )
             print("Rep ", rep, "Chunk ", i, "drklgt completed.")
 
-            # Output
-            posterior_chunk = {
-                'lgtlgt': posterior_lgtlgt,
-                'drkdrk': posterior_drkdrk,
-                'lgtdrk': posterior_lgtdrk,
-                'drklgt': posterior_drklgt
-            }     
-            decoded_pos_chunk = {
-                'lgtlgt': decoded_pos_lgtlgt,
-                'drkdrk': decoded_pos_drkdrk,
-                'lgtdrk': decoded_pos_lgtdrk,
-                'drklgt': decoded_pos_drklgt
-            }
-            posterior_allchunks.append(posterior_chunk)
-            decoded_pos_allchunks.append(decoded_pos_chunk)
+            for paradigm in paradigms:
+                posterior_rep[paradigm].append(posterior_chunk[paradigm])
+                decoded_pos_rep[paradigm].append(decoded_pos_chunk[paradigm])
+
+        for paradigm in paradigms:
+            posterior_rep[paradigm] = np.concatenate(posterior_rep[paradigm], axis=0)
+            decoded_pos_rep[paradigm] = np.concatenate(decoded_pos_rep[paradigm], axis=0)
         
-        posterior_allreps.append(posterior_allchunks)
-        decoded_pos_allreps.append(decoded_pos_allchunks)
+        posterior_allreps.append(posterior_rep)
+        decoded_pos_allreps.append(decoded_pos_rep)
         print("Completed Rep ", rep)
 
     print("Completed all reps.")
@@ -850,68 +842,62 @@ def run_results_chunks(
 
     """  
     # Chunk position matrix
-    pos_lgt_chunks = u.sort_and_chunk(mouse, mouse.pos_lgt_masked, 'lgt', discrete, num_chunks)
-    pos_drk_chunks = u.sort_and_chunk(mouse, mouse.pos_drk_masked, 'drk', discrete, num_chunks)
+    mouse.pos_lgt_chunks = u.sort_and_chunk(mouse, mouse.pos_lgt_masked, 'lgt', discrete, num_chunks)
+    mouse.pos_drk_chunks = u.sort_and_chunk(mouse, mouse.pos_drk_masked, 'drk', discrete, num_chunks)
+    pos_lgt_sorted = np.concatenate(mouse.pos_lgt_chunks, axis=0)
+    pos_drk_sorted = np.concatenate(mouse.pos_drk_chunks, axis=0)
 
     # Intialise output
     paradigms = ['lgtlgt', 'drkdrk', 'lgtdrk', 'drklgt']
-    confusion_mtx_allchunks = {paradigm: np.zeros((num_pbins, num_pbins)) for paradigm in paradigms}
+    confusion_mtx = {paradigm: np.zeros((num_pbins, num_pbins)) for paradigm in paradigms}
     accuracy_mtx = {paradigm: [] for paradigm in paradigms}
     accuracy_rate = {paradigm: [] for paradigm in paradigms}
     errors = {paradigm: [] for paradigm in paradigms}
     mean_error = {paradigm: [] for paradigm in paradigms}
     median_error = {paradigm: [] for paradigm in paradigms}
     rt_mse = {paradigm: [] for paradigm in paradigms}
-    all_predictions = {paradigm: {pos: [] for pos in range(num_pbins)} for paradigm in paradigms}
     most_freq_predictions = {paradigm: {pos: [] for pos in range(num_pbins)} for paradigm in paradigms}
     most_freq_errors = {paradigm: {pos: [] for pos in range(num_pbins)} for paradigm in paradigms}
     most_freq_mean_error = {paradigm: [] for paradigm in paradigms}
 
     # Loop through each paradigm and chunk
     for paradigm in paradigms:
-        for chunk in range(num_chunks):
-            # Set true position
-            if paradigm == 'lgtlgt' or paradigm == 'drklgt':
-                true = pos_lgt_chunks[chunk]
-            elif paradigm == 'drkdrk' or paradigm == 'lgtdrk':
-                true = pos_drk_chunks[chunk]
-            # Set predicted position and create mask for time bins where there are predictions
-            pred = mouse.decoded_pos_allchunks[chunk][paradigm]
-            pred_mask = ~np.isnan(pred)
+        # Set true position
+        if paradigm == 'lgtlgt' or paradigm == 'drklgt':
+            true = pos_lgt_sorted
+        elif paradigm == 'drkdrk' or paradigm == 'lgtdrk':
+            true = pos_drk_sorted
+        # Set predicted position and create mask for time bins where there are predictions
+        pred = mouse.decoded_pos[paradigm]
+        pred_mask = ~np.isnan(pred)
 
-            # True/False matrix of pred pos == true pos, where there are decoder predictions
-            accuracy_mtx[paradigm].extend(pred[pred_mask] == true[pred_mask])
+        for pos in range(num_pbins):
+            # Find time bins where true pos is y
+            true_pos_tbins = list(zip(*np.where(true == pos)))
+            # Find corresponding predicted positions in those time bins excluding NaNs
+            predictions = [pred[i] for i in true_pos_tbins if not np.isnan(pred[i])]
 
-            # Compute error for each time bin where there are decoder predictions
-            errors[paradigm].extend(abs(np.subtract(pred[pred_mask], true[pred_mask])))
+            # Get frequency of each predicted pos and compute % of total predictions for confusion matrix
+            num_predictions = len(predictions)
+            prediction_count_for_pos = Counter(predictions)
+            for x, count in prediction_count_for_pos.items():
+                confusion_mtx[paradigm][int(pos), int(x)] = count / num_predictions
 
-            # For each true position bin y
-            for pos in range(num_pbins):        
-                # Find time bins where true pos is y
-                true_pos_tbins = list(zip(*np.where(true == pos)))
-                # Find corresponding predicted positions in those time bins excluding NaNs
-                predictions = [pred[i] for i in true_pos_tbins if not np.isnan(pred[i])]
-                all_predictions[paradigm][pos].extend(predictions)
-
-                # Get frequency of each predicted pos and compute % of total predictions for confusion matrix
-                total_num_predictions = len(all_predictions[paradigm][pos])
-                prediction_count_for_pos = Counter(all_predictions[paradigm][pos])
-                for x, count in prediction_count_for_pos.items():
-                    confusion_mtx_allchunks[paradigm][int(pos), int(x)] = count / total_num_predictions
-
-                # Find most frequently decoded position for true position y and their respective errors
-                if not prediction_count_for_pos:
-                    most_freq_predictions[paradigm][pos] = np.nan
-                else:
-                    max_count = max(prediction_count_for_pos.values())
-                    most_freq_predictions[paradigm][pos] = [pred for pred, count in prediction_count_for_pos.items() if count == max_count]
-                    most_freq_errors[paradigm][pos] = [abs(pos - pred) for pred in most_freq_predictions[paradigm][pos]]
-                    most_freq_errors[paradigm][pos] = np.nanmean(most_freq_errors[paradigm][pos])
+            # Find most frequently decoded position for true position y and their respective errors
+            if not prediction_count_for_pos:
+                most_freq_predictions[paradigm][pos] = np.nan
+            else:
+                max_count = max(prediction_count_for_pos.values())
+                most_freq_predictions[paradigm][pos] = [pred for pred, count in prediction_count_for_pos.items() if count == max_count]
+                most_freq_errors[paradigm][pos] = [abs(pos - pred) for pred in most_freq_predictions[paradigm][pos]]
+                most_freq_errors[paradigm][pos] = np.nanmean(most_freq_errors[paradigm][pos])
         
-        # Compute accuracy rate
-        accuracy_rate[paradigm] = np.sum(accuracy_mtx[paradigm]) / len(accuracy_mtx[paradigm])
+        # Compute accuracy rate for time bins where there are decoder predictions
+        accuracy_mtx[paradigm].extend(pred[pred_mask] == true[pred_mask])
+        accuracy_rate[paradigm] = np.sum(accuracy_mtx[paradigm]) / len(accuracy_mtx[paradigm])   
 
         # Compute mean error, median error and root MSE
+        errors[paradigm].extend(abs(np.subtract(pred[pred_mask], true[pred_mask])))
         mean_error[paradigm] = np.nanmean(errors[paradigm])
         median_error[paradigm] = np.nanmedian(errors[paradigm])
         rt_mse[paradigm] = np.sqrt(np.nanmean(np.square(errors[paradigm])))
@@ -921,7 +907,7 @@ def run_results_chunks(
         most_freq_mean_error[paradigm] = np.nanmean(most_freq_errors[paradigm])
 
     results = {
-        'confusion_mtx': confusion_mtx_allchunks,
+        'confusion_mtx': confusion_mtx,
         'accuracy_rate': accuracy_rate,
         'mean_error': mean_error,
         'median_error': median_error,
