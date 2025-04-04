@@ -799,121 +799,90 @@ def run_results(
 
 
 def run_results_chunks(
-        mouse: d.CaImgData | d.NpxlData, 
-        num_pbins: int = 46,
+        mouse,
         num_chunks: int = 10,
+        num_pbins: int = 46,
         discrete: bool = True
-) -> tuple:
+):
     """
-    Run confusion matrices, accuracy, and errors.
-
-    Args:
-        mouse (MouseData):
-            An instance of class MouseData. Identify which mouse's data to use.
-
-        num_pbins (int):
-            Number of position bins to generate confusion matrix (excluding the reward zone).
-
-        num_chunks (int):
-            Number of chunks of trials.
-
-        discrete: (bool):
-            Whether to chunk trials in discrete or continuous manner.
-
-    Returns:
-        dict: a dict containing:
-            - confusion_mtx_allchunks (dict):
-                a dict containing the confusion matrices (np.ndarray) of each paradigm
-
-            - mean_accuracy (dict):
-                a dict containing the mean accuracy (float) across chunks of each paradigm
-
-            - mean_error (dict):
-                a dict containing the mean error (flaot) across chunks of each paradigm
-
-            - median_error (dict):
-                a dict containing the median error (float) across chunks of each paradigm
-
-            - rt_mse (dict):
-                a dict containing the root mean squared error (float) across chunks of each paradigm
-
-            - most_freq_mean_error (dict):
-                a dict containing the mean error (float) of the most frequently decoded position of each paradigm
-
-    """  
-    # Chunk position matrix
-    mouse.pos_lgt_chunks = u.sort_and_chunk(mouse, mouse.pos_lgt_masked, 'lgt', discrete, num_chunks)
-    mouse.pos_drk_chunks = u.sort_and_chunk(mouse, mouse.pos_drk_masked, 'drk', discrete, num_chunks)
-    pos_lgt_sorted = np.concatenate(mouse.pos_lgt_chunks, axis=0)
-    pos_drk_sorted = np.concatenate(mouse.pos_drk_chunks, axis=0)
-
-    # Intialise output
+    """
     paradigms = ['lgtlgt', 'drkdrk', 'lgtdrk', 'drklgt']
+
+    # Initialise trial outputs
+    trial_accuracy = {paradigm: [] for paradigm in paradigms}
+    trial_mean_error = {paradigm: [] for paradigm in paradigms}
+    trial_median_error = {paradigm: [] for paradigm in paradigms}
+    trial_rt_mse = {paradigm: [] for paradigm in paradigms}
+    trial_wt_error = {paradigm: [] for paradigm in paradigms}
+    
+    # Initialise final outputs
     confusion_mtx = {paradigm: np.zeros((num_pbins, num_pbins)) for paradigm in paradigms}
-    accuracy_mtx = {paradigm: [] for paradigm in paradigms}
-    accuracy_rate = {paradigm: [] for paradigm in paradigms}
-    errors = {paradigm: [] for paradigm in paradigms}
+    MostFreqPred_error = {paradigm: [] for paradigm in paradigms}
+    mean_accuracy = {paradigm: [] for paradigm in paradigms}
     mean_error = {paradigm: [] for paradigm in paradigms}
     median_error = {paradigm: [] for paradigm in paradigms}
     rt_mse = {paradigm: [] for paradigm in paradigms}
-    most_freq_predictions = {paradigm: {pos: [] for pos in range(num_pbins)} for paradigm in paradigms}
-    most_freq_errors = {paradigm: {pos: [] for pos in range(num_pbins)} for paradigm in paradigms}
-    most_freq_mean_error = {paradigm: [] for paradigm in paradigms}
+    mean_wt_error = {paradigm: [] for paradigm in paradigms}
+    
+    # Sort and chunk trials
+    pos_lgt_sorted = np.concatenate(u.sort_and_chunk(mouse, mouse.pos_lgt_masked, 'lgt', discrete, num_chunks), axis=0)
+    pos_drk_sorted = np.concatenate(u.sort_and_chunk(mouse, mouse.pos_drk_masked, 'drk', discrete, num_chunks), axis=0)
 
-    # Loop through each paradigm and chunk
     for paradigm in paradigms:
         # Set true position
         if paradigm == 'lgtlgt' or paradigm == 'drklgt':
             true = pos_lgt_sorted
         elif paradigm == 'drkdrk' or paradigm == 'lgtdrk':
             true = pos_drk_sorted
-        # Set predicted position and create mask for time bins where there are predictions
+
+        # Set predicted position
         pred = mouse.decoded_pos[paradigm]
         pred_mask = ~np.isnan(pred)
 
+        # Set posterior
+        posterior = mouse.posterior[paradigm]
+        num_trials, num_tbins, num_pbins = posterior.shape
+
         for pos in range(num_pbins):
-            # Find time bins where true pos is y
-            true_pos_tbins = list(zip(*np.where(true == pos)))
-            # Find corresponding predicted positions in those time bins excluding NaNs
-            predictions = [pred[i] for i in true_pos_tbins if not np.isnan(pred[i])]
+            # Count frequency for each possible predicted position
+            pred_pos_count, num_preds = r.get_pred_pos_count(true, pred, pos)
 
-            # Get frequency of each predicted pos and compute % of total predictions for confusion matrix
-            num_predictions = len(predictions)
-            prediction_count_for_pos = Counter(predictions)
-            for x, count in prediction_count_for_pos.items():
-                confusion_mtx[paradigm][int(pos), int(x)] = count / num_predictions
+            # Compute confusion matrix
+            for x, count in pred_pos_count.items():
+                confusion_mtx[paradigm][int(pos), int(x)] = count / num_preds
 
-            # Find most frequently decoded position for true position y and their respective errors
-            if not prediction_count_for_pos:
-                most_freq_predictions[paradigm][pos] = np.nan
-            else:
-                max_count = max(prediction_count_for_pos.values())
-                most_freq_predictions[paradigm][pos] = [pred for pred, count in prediction_count_for_pos.items() if count == max_count]
-                most_freq_errors[paradigm][pos] = [abs(pos - pred) for pred in most_freq_predictions[paradigm][pos]]
-                most_freq_errors[paradigm][pos] = np.nanmean(most_freq_errors[paradigm][pos])
-        
-        # Compute accuracy rate for time bins where there are decoder predictions
-        accuracy_mtx[paradigm].extend(pred[pred_mask] == true[pred_mask])
-        accuracy_rate[paradigm] = np.sum(accuracy_mtx[paradigm]) / len(accuracy_mtx[paradigm])   
+            # Compute error for most frequently predicted position
+            MostFreqPred_error[paradigm].append(r.get_MostFreqPred_error(pred_pos_count, pos))
+        MostFreqPred_error[paradigm] = np.nanmean(MostFreqPred_error[paradigm])
 
-        # Compute mean error, median error and root MSE
-        errors[paradigm].extend(abs(np.subtract(pred[pred_mask], true[pred_mask])))
-        mean_error[paradigm] = np.nanmean(errors[paradigm])
-        median_error[paradigm] = np.nanmedian(errors[paradigm])
-        rt_mse[paradigm] = np.sqrt(np.nanmean(np.square(errors[paradigm])))
+        for trial in range(num_trials):
+            # Get trial accuracy, mean_error, median_error, rt_mse, wt_error
+            accuracy = r.get_trial_accuracy(true, pred, pred_mask, trial)
+            errors = r.get_trial_errors(true, pred, pred_mask, trial)
+            wt_error = r.get_trial_wt_error(true, posterior, trial, num_tbins, num_pbins)
 
-        # Compute mean error for most frequently decoded position
-        most_freq_errors[paradigm] = np.array([v for v in most_freq_errors[paradigm].values() if isinstance(v, (int, float))])
-        most_freq_mean_error[paradigm] = np.nanmean(most_freq_errors[paradigm])
+            trial_accuracy[paradigm].append(accuracy)
+            trial_mean_error[paradigm].append(np.nanmean(errors))
+            trial_median_error[paradigm].append(np.nanmedian(errors))
+            trial_rt_mse[paradigm].append(np.sqrt(np.nanmean(np.square(errors))))
+            trial_wt_error[paradigm].append(wt_error)
+
+        # Average accuracy and errors across trials                                  
+        mean_accuracy[paradigm] = np.nanmean(trial_accuracy[paradigm])
+        mean_error[paradigm] = np.nanmean(trial_mean_error[paradigm])
+        median_error[paradigm] = np.nanmean(trial_median_error[paradigm])
+        rt_mse[paradigm] = np.nanmean(trial_rt_mse[paradigm])
+        mean_wt_error[paradigm] = np.nanmean(trial_wt_error[paradigm])
 
     results = {
         'confusion_mtx': confusion_mtx,
-        'accuracy_rate': accuracy_rate,
+        'mean_accuracy': mean_accuracy,
         'mean_error': mean_error,
         'median_error': median_error,
         'rt_mse': rt_mse,
-        'most_freq_mean_error': most_freq_mean_error
-    }  
+        'mean_wt_error': mean_wt_error,
+        'MostFreqPred_error': MostFreqPred_error
+    }
     return results
 
 
