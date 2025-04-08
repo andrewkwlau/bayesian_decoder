@@ -504,14 +504,6 @@ def run_decoder_chance(
 
     # Masking position matrix and getting trial lengths
     print("1. Masking position matrix and getting trial lengths.")
-    mouse.firstx_pos = u.get_firstx_pos(mouse.position_mtx, x)
-    mouse.position_mtx_masked = u.mask_position_mtx(
-        mouse.position_mtx, 
-        mouse.rewardzone, 
-        mouse.firstx_pos
-    )
-    mouse.triallength = u.get_trial_length(mouse.position_mtx_masked)
-    mouse.triallength_lgt, mouse.triallength_drk = u.split_lightdark(mouse.triallength, mouse.darktrials)
     triallength_lgt_chunks = u.sort_and_chunk(mouse, mouse.triallength_lgt, 'lgt', discrete, num_chunks)
     triallength_drk_chunks = u.sort_and_chunk(mouse, mouse.triallength_drk, 'drk', discrete, num_chunks)
 
