@@ -82,7 +82,7 @@ def load_data(mouse_ID, tau=None):
 
 
 @dataclass
-class CaImgData:
+class CaimData:
     # Fields created at intialisation
     mouse_ID: str
     tau: float

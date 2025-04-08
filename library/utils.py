@@ -617,7 +617,7 @@ def chunk_trials(data: np.ndarray, num_chunks: int) -> list:
 
 
 def sort_and_chunk(
-        mouse: d.CaImgData | d.NpxlData,
+        mouse: d.CaimData | d.NpxlData,
         data: np.ndarray,
         data_condition: str,
         discrete: bool = True,
@@ -630,7 +630,7 @@ def sort_and_chunk(
     """
     num_trials = data.shape[0]
 
-    if type(mouse) == d.CaImgData:
+    if type(mouse) == d.CaimData:
         pos_all = mouse.position_mtx
     pos_lgt = mouse.pos_lgt
     pos_drk = mouse.pos_drk
