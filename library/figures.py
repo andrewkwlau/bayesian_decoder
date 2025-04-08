@@ -12,7 +12,7 @@ import data as d
 import utils as u
 
 def plot_single_tuning(
-        mouse: d.CaImgData | d.NpxlData,
+        mouse: d.CaimData | d.NpxlData,
         data: np.ndarray,
         data_type: str,
         neuron_idx: int = None,
@@ -103,7 +103,7 @@ def plot_single_tuning(
 
 
 def plot_single_heatmap(
-        mouse: d.CaImgData | d.NpxlData,
+        mouse: d.CaimData | d.NpxlData,
         data: np.ndarray,
         data_type: str,
         neuron_idx: int = None,
@@ -198,7 +198,7 @@ def plot_single_heatmap(
 
 
 def plot_confusion_mtx(
-        mouse: d.CaImgData | d.NpxlData,
+        mouse: d.CaimData | d.NpxlData,
         confusion_mtx: np.ndarray,
         paradigm: str,
         save: bool = False
@@ -267,7 +267,7 @@ def plot_confusion_mtx(
 
 
 def plot_accuracy(
-        mouse: d.CaImgData | d.NpxlData,
+        mouse: d.CaimData | d.NpxlData,
         decoder_results: dict,
         chance_results: dict,
         num_reps: int,
@@ -330,7 +330,7 @@ def plot_accuracy(
 
 
 def plot_errors(
-        mouse: d.CaImgData | d.NpxlData,
+        mouse: d.CaimData | d.NpxlData,
         decoder_results: dict,
         chance_results: dict,
         num_reps: int,

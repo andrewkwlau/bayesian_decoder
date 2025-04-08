@@ -8,7 +8,7 @@ import data as d
 import utils as u
 
 def bayesian_decoder(
-        mouse: d.CaImgData | d.NpxlData | d.NpxlData, 
+        mouse: d.CaimData | d.NpxlData, 
         training_fr: np.ndarray, 
         testing_spikes: np.ndarray, 
         num_pbins: int,
@@ -154,7 +154,7 @@ def bayesian_decoder(
 
 
 def bayesian_decoder_chunks(
-        mouse: d.CaImgData | d.NpxlData, 
+        mouse: d.CaimData | d.NpxlData, 
         training_fr_chunk: np.ndarray, 
         testing_spikes_chunk: np.ndarray,
         trial_length_chunk: np.ndarray,
