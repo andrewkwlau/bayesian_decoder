@@ -271,7 +271,7 @@ def run_decoder(
 
 
 def run_decoder_chunks(
-        mouse: d.CaimData | d.NpxlData | d.NpxlData, 
+        mouse: d.CaimData | d.NpxlData, 
         x: int = 5,
         tunnellength: int = 50, 
         num_pbins: int = 46, 
@@ -741,7 +741,7 @@ def run_results_chunks(
     rt_mse = {paradigm: [] for paradigm in paradigms}
     mean_wt_error = {paradigm: [] for paradigm in paradigms}
     
-    # Sort and chunk trials
+    # Sort and chunk true positions
     pos_lgt_sorted = np.concatenate(u.sort_and_chunk(mouse, mouse.pos_lgt_masked, 'lgt', discrete, num_chunks), axis=0)
     pos_drk_sorted = np.concatenate(u.sort_and_chunk(mouse, mouse.pos_drk_masked, 'drk', discrete, num_chunks), axis=0)
 
@@ -804,71 +804,99 @@ def run_results_chunks(
 
 
 def run_results_chance(
-        mouse: d.CaimData | d.NpxlData, 
+        mouse: d.CaimData, 
         num_reps: int = 100,
         num_chunks: int = 10,
         discrete: bool = True
 ):
     """
     """
-    # Chunk position matrix
-    pos_lgt_chunks = u.sort_and_chunk(mouse, mouse.pos_lgt_masked, 'lgt', discrete, num_chunks)
-    pos_drk_chunks = u.sort_and_chunk(mouse, mouse.pos_drk_masked, 'drk', discrete, num_chunks)
-
-    # Intialise output
     paradigms = ['lgtlgt', 'drkdrk', 'lgtdrk', 'drklgt']
-    accuracy_rate_allreps = {paradigm:[] for paradigm in paradigms}
-    mean_error_allreps = {paradigm:[] for paradigm in paradigms}
-    median_error_allreps = {paradigm:[] for paradigm in paradigms}
-    rt_mse_allreps = {paradigm:[] for paradigm in paradigms}
+    
+    # Initialise final outputs
+    mean_accuracy_allreps = []
+    mean_error_allreps = []
+    median_error_allreps = []
+    rt_mse_allreps = []
+    mean_wt_error_allreps = []
+
+    # Sort and chunk true positions
+    pos_lgt_sorted = np.concatenate(u.sort_and_chunk(mouse, mouse.pos_lgt_masked, 'lgt', discrete, num_chunks), axis=0)
+    pos_drk_sorted = np.concatenate(u.sort_and_chunk(mouse, mouse.pos_drk_masked, 'drk', discrete, num_chunks), axis=0)
 
     for rep in range(num_reps):
-        # Initialise dict for storing accuracy and error values for all chunks
-        accuracy_mtx_rep = {paradigm: [] for paradigm in paradigms}
-        accuracy_rate_rep = {paradigm: [] for paradigm in paradigms}
-        errors_rep = {paradigm: [] for paradigm in paradigms}
+        # Initialise trial outputs
+        trial_accuracy = {paradigm: [] for paradigm in paradigms}
+        trial_mean_error = {paradigm: [] for paradigm in paradigms}
+        trial_median_error = {paradigm: [] for paradigm in paradigms}
+        trial_rt_mse = {paradigm: [] for paradigm in paradigms}
+        trial_wt_error = {paradigm: [] for paradigm in paradigms}
+
+        # Intialise rep outputs
+        MostFreqPred_error_rep = {paradigm: [] for paradigm in paradigms}
+        mean_accuracy_rep = {paradigm: [] for paradigm in paradigms}
         mean_error_rep = {paradigm: [] for paradigm in paradigms}
         median_error_rep = {paradigm: [] for paradigm in paradigms}
         rt_mse_rep = {paradigm: [] for paradigm in paradigms}
+        mean_wt_error_rep = {paradigm: [] for paradigm in paradigms}
 
         for paradigm in paradigms:
-            for chunk in range(num_chunks):
-                # Set true position
-                if paradigm == 'lgtlgt' or paradigm == 'drklgt':
-                    true = pos_lgt_chunks[chunk]
-                elif paradigm == 'drkdrk' or paradigm == 'lgtdrk':
-                    true = pos_drk_chunks[chunk]
-                # Set predicted position and create mask for time bins where there are predictions
-                pred = mouse.decoded_pos_allreps[rep][chunk][paradigm]
-                pred_mask = ~np.isnan(pred)
+            # Set true position
+            if paradigm == 'lgtlgt' or paradigm == 'drklgt':
+                true = pos_lgt_sorted
+            elif paradigm == 'drkdrk' or paradigm == 'lgtdrk':
+                true = pos_drk_sorted
 
-                # True/False matrix of pred pos == true pos, where there are decoder predictions
-                accuracy_mtx_rep[paradigm].extend(pred[pred_mask] == true[pred_mask])
+            # Set predicted position
+            pred = mouse.decoded_pos_allreps[rep][paradigm]
+            pred_mask = ~np.isnan(pred)
 
-                # Compute error for each time bin where there are decoder predictions
-                errors_rep[paradigm].extend(abs(np.subtract(pred[pred_mask], true[pred_mask])))
+            # Set posterior
+            posterior = mouse.posterior_allreps[rep][paradigm]
+            num_trials, num_tbins, num_pbins = posterior.shape
 
-            # Compute accuracy rate
-            accuracy_rate_rep[paradigm] = np.sum(accuracy_mtx_rep[paradigm]) / len(accuracy_mtx_rep[paradigm])
+            for pos in range(num_pbins):
+                # Count frequency for each possible predicted position
+                pred_pos_count, num_preds = r.get_pred_pos_count(true, pred, pos)
 
-            # Compute mean error, median error and root MSE
-            mean_error_rep[paradigm] = np.nanmean(errors_rep[paradigm])
-            median_error_rep[paradigm] = np.nanmedian(errors_rep[paradigm])
-            rt_mse_rep[paradigm] = np.sqrt(np.nanmean(np.square(errors_rep[paradigm])))
+                # Compute error for most frequently predicted position
+                MostFreqPred_error_rep[paradigm].append(r.get_MostFreqPred_error(pred_pos_count, pos))
+            MostFreqPred_error_rep[paradigm] = np.nanmean(MostFreqPred_error_rep[paradigm])
 
-            # Append results of each rep
-            accuracy_rate_allreps[paradigm].extend(accuracy_rate_rep[paradigm])
-            mean_error_allreps[paradigm].extend(mean_error_rep[paradigm])
-            median_error_allreps[paradigm].extend(median_error_rep[paradigm])
-            rt_mse_allreps[paradigm].extend(rt_mse_rep[paradigm])
+            for trial in range(num_trials):
+                # Get trial accuracy, mean_error, median_error, rt_mse, wt_error
+                accuracy = r.get_trial_accuracy(true, pred, pred_mask, trial)
+                errors = r.get_trial_errors(true, pred, pred_mask, trial)
+                wt_error = r.get_trial_wt_error(true, posterior, trial, num_tbins, num_pbins)
 
-    results = {
-        'accuracy_rate_allreps': accuracy_rate_allreps,
+                trial_accuracy[paradigm].append(accuracy)
+                trial_mean_error[paradigm].append(np.nanmean(errors))
+                trial_median_error[paradigm].append(np.nanmedian(errors))
+                trial_rt_mse[paradigm].append(np.sqrt(np.nanmean(np.square(errors))))
+                trial_wt_error[paradigm].append(wt_error)
+
+            # Average accuracy and errors across trials                                  
+            mean_accuracy_rep[paradigm] = np.nanmean(trial_accuracy[paradigm])
+            mean_error_rep[paradigm] = np.nanmean(trial_mean_error[paradigm])
+            median_error_rep[paradigm] = np.nanmean(trial_median_error[paradigm])
+            rt_mse_rep[paradigm] = np.nanmean(trial_rt_mse[paradigm])
+            mean_wt_error_rep[paradigm] = np.nanmean(trial_wt_error[paradigm])
+        
+        # Append rep outputs to final outputs
+        mean_accuracy_allreps.append(mean_accuracy_rep)
+        mean_error_allreps.append(mean_error_rep)
+        median_error_allreps.append(median_error_rep)
+        rt_mse_allreps.append(rt_mse_rep)
+        mean_wt_error_allreps.append(mean_wt_error_rep)
+
+    results_allreps = {
+        'accuracy_rate_allreps': mean_accuracy_allreps,
         'mean_error_allreps': mean_error_allreps,
         'median_error_allreps': median_error_allreps,
-        'rt_mse_allreps': rt_mse_allreps
+        'rt_mse_allreps': rt_mse_allreps,
+        'mean_wt_error_allreps': mean_wt_error_allreps
     } 
-    return results
+    return results_allreps
 
 
 def pca_preprocess(
