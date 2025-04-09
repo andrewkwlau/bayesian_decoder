@@ -890,7 +890,7 @@ def run_results_chance(
         mean_wt_error_allreps.append(mean_wt_error_rep)
 
     results_allreps = {
-        'accuracy_rate_allreps': mean_accuracy_allreps,
+        'mean_accuracy_allreps': mean_accuracy_allreps,
         'mean_error_allreps': mean_error_allreps,
         'median_error_allreps': median_error_allreps,
         'rt_mse_allreps': rt_mse_allreps,
