@@ -336,8 +336,6 @@ def run_decoder_chunks(
     triallength_lgt_chunks = u.sort_and_chunk(mouse, mouse.triallength_lgt, 'lgt', discrete, num_chunks)
     triallength_drk_chunks = u.sort_and_chunk(mouse, mouse.triallength_drk, 'drk', discrete, num_chunks)
 
-    num_chunks = len(spikes_lgt_chunks)
-
     # Intialise output
     paradigms = ['lgtlgt', 'drkdrk', 'lgtdrk', 'drklgt']
     posterior = {paradigm : [] for paradigm in paradigms}

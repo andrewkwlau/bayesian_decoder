@@ -630,7 +630,7 @@ def sort_and_chunk(
     """
     num_trials = data.shape[0]
 
-    if type(mouse) == d.CaimData:
+    if isinstance(mouse, d.CaimData):
         pos_all = mouse.position_mtx
     pos_lgt = mouse.pos_lgt
     pos_drk = mouse.pos_drk
@@ -652,8 +652,7 @@ def sort_and_chunk(
     print(trial_start_sorted)
     
     # Rearrange data with new trial index
-    for trial in range(num_trials):
-        data_sorted = data[new_trial_index]
+    data_sorted = data[new_trial_index]
 
     # Chunk trials
     # if trials have discete start location
