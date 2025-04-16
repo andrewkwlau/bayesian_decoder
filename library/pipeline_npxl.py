@@ -16,6 +16,8 @@ def get_tuning_curves(
         mouse: d.NpxlData,
         x: int = 5,
         tunnellength: int = 50,
+        smooth: bool = False,
+        SDfrac: float = 0.2
 ):
     """
     """
@@ -57,25 +59,56 @@ def get_tuning_curves(
     mouse.fr_lgt_masked = u.mask_spikes(mouse.fr_lgt, mouse.mask_lgt)
     mouse.fr_drk_masked = u.mask_spikes(mouse.fr_drk, mouse.mask_drk)
 
+    # Smooth spikes and bin firing rates data by position
+    if smooth == True:
+        sigma = u.compute_sigma(mouse.tau, SDfrac=SDfrac)
+        mouse.spikes_lgt_smoothed = u.gaussiansmooth_spikes(
+            mouse.spikes_lgt_masked,
+            mouse.mask_lgt,
+            sigma
+        )
+        mouse.spikes_drk_smoothed = u.gaussiansmooth_spikes(
+            mouse.spikes_drk_masked,
+            mouse.mask_drk,
+            sigma
+        )
+
+        # Bin FR with spikes_smoothed
+        mouse.fr_lgt_smoothed = u.posbinning_data(
+            mouse.spikes_lgt_smoothed, 
+            'spikes',
+            mouse.pos_lgt_masked,
+            tunnellength,
+            mouse.tau
+        )
+        mouse.fr_drk_smoothed = u.posbinning_data(
+            mouse.spikes_drk_smoothed, 
+            'spikes',
+            mouse.pos_drk_masked,
+            tunnellength,
+            mouse.tau
+        )
+    
+    else:
+        # Bin FR with spikerate provided
+        mouse.fr_lgt_smoothed = u.posbinning_data(
+            mouse.fr_lgt_masked, 
+            'npxl',
+            mouse.pos_lgt_masked,
+            tunnellength,
+            mouse.tau
+        )
+        mouse.fr_drk_smoothed = u.posbinning_data(
+            mouse.fr_drk_masked, 
+            'npxl',
+            mouse.pos_drk_masked,
+            tunnellength,
+            mouse.tau
+        )
+
     # Get trial lengths
     mouse.triallength_lgt = u.get_trial_length(mouse.pos_lgt_masked)
     mouse.triallength_drk = u.get_trial_length(mouse.pos_drk_masked)
-
-    # Bin firing rates data by position
-    mouse.fr_lgt_smoothed = u.posbinning_data(
-        mouse.fr_lgt_masked, 
-        'npxl',
-        mouse.pos_lgt_masked,
-        tunnellength,
-        mouse.tau
-    )
-    mouse.fr_drk_smoothed = u.posbinning_data(
-        mouse.fr_drk_masked, 
-        'npxl',
-        mouse.pos_drk_masked,
-        tunnellength,
-        mouse.tau
-    )
 
     # Scale firing rates
     mouse.fr_lgt_scaled_smoothed, mouse.fr_drk_scaled_smoothed = u.scale_firingrate(
@@ -85,7 +118,7 @@ def get_tuning_curves(
 
 
 def run_decoder(
-        mouse: d.CaImgData | d.NpxlData | d.NpxlData,
+        mouse: d.NpxlData,
         x: int = 5, 
         tunnellength: int = 50, 
         num_pbins: int = 46, 
@@ -204,15 +237,16 @@ def run_decoder(
 
 
 def run_decoder_chunks(
-        mouse: d.CaImgData | d.NpxlData | d.NpxlData, 
+        mouse: d.NpxlData, 
         x: int = 5,
         tunnellength: int = 50, 
         num_pbins: int = 46, 
+        smooth: bool = False,
         SDfrac: float = 0.2, 
         scale: bool = True,
         uniformprior: bool = False,
         discrete: bool = True,
-        num_chunks: int = 10
+        num_chunks: int = 6
 ) -> tuple:
     """
     Run chunking decoder pipeline.
@@ -256,7 +290,7 @@ def run_decoder_chunks(
 
     """
     # Run wrapper for getting tunning curves
-    get_tuning_curves(mouse, x, tunnellength)
+    get_tuning_curves(mouse, x, tunnellength, smooth, SDfrac)
 
     # Sort and chunk trials in list
     print("Sorting trials and chunking trials.")
@@ -268,8 +302,6 @@ def run_decoder_chunks(
     fr_drk_scaled_smoothed_chunks = u.sort_and_chunk(mouse, mouse.fr_drk_scaled_smoothed, 'drk', discrete, num_chunks)
     triallength_lgt_chunks = u.sort_and_chunk(mouse, mouse.triallength_lgt, 'lgt', discrete, num_chunks)
     triallength_drk_chunks = u.sort_and_chunk(mouse, mouse.triallength_drk, 'drk', discrete, num_chunks)
-
-    num_chunks = len(spikes_lgt_chunks)
 
     # Intialise output
     paradigms = ['lgtlgt', 'drkdrk', 'lgtdrk', 'drklgt']
@@ -342,16 +374,17 @@ def run_decoder_chunks(
 
 
 def run_decoder_chance(
-        mouse: d.CaImgData | d.NpxlData, 
+        mouse: d.NpxlData, 
         num_reps: int = 100,
         x: int = 5,
         tunnellength: int = 50, 
-        num_pbins: int = 46, 
+        num_pbins: int = 46,
+        smooth: bool = False, 
         SDfrac: float = 0.2, 
         scale: bool = True,
         uniformprior: bool = False,
         discrete: bool = True,
-        num_chunks: int = 10
+        num_chunks: int = 6
 ) -> tuple:
     """
     Run decoder in chunks for chance level estimation using shuffled data.
@@ -360,53 +393,102 @@ def run_decoder_chance(
     posterior_allreps = []
     decoded_pos_allreps = []
 
-    # Masking position matrix and getting trial lengths
+    # Chunking trial lengths
     print("1. Masking position matrix and getting trial lengths.")
     triallength_lgt_chunks = u.sort_and_chunk(mouse, mouse.triallength_lgt, 'lgt', discrete, num_chunks)
     triallength_drk_chunks = u.sort_and_chunk(mouse, mouse.triallength_drk, 'drk', discrete, num_chunks)
 
     for rep in range(num_reps):
         print("Rep ", rep, " start...")
-        spikes = mouse.spikes_shuffled[rep]
-        spikeprob = mouse.spikeprob_shuffled[rep]
+        spikes_lgt = mouse.spikes_shuffled_lgt[:,:,:,rep]
+        spikes_drk = mouse.spikes_shuffled_drk[:,:,:,rep]
+        fr_lgt = mouse.fr_shuffled_lgt[:,:,:,rep]
+        fr_drk = mouse.fr_shuffled_drk[:,:,:,rep]
+        print(spikes_lgt.shape)
+        print(spikes_drk.shape)
+        print(fr_lgt.shape)
+        print(fr_drk.shape)
 
-        # Masking spikes and position matrix
-        print("2. Masking spikes.")    
-        mask = u.create_spikesmask(
-            spikes, 
-            mouse.position_mtx, 
-            spikeprob, 
+        print("2. Masking spikes.")
+        # Create Mask 
+        mask_lgt = u.create_spikesmask(
+            spikes_lgt, 
+            mouse.pos_lgt, 
+            None, 
             mouse.rewardzone, 
-            mouse.firstx_pos
+            mouse.firstx_pos_lgt
         )
-        spikes_masked = u.mask_spikes(spikes, mask)
+        mask_drk = u.create_spikesmask(
+            spikes_drk, 
+            mouse.pos_drk, 
+            None, 
+            mouse.rewardzone, 
+            mouse.firstx_pos_drk
+        )
+
+        # Mask spikes
+        spikes_lgt_masked = u.mask_spikes(spikes_lgt, mask_lgt)
+        spikes_drk_masked = u.mask_spikes(spikes_drk, mask_drk)
+        fr_lgt_masked = u.mask_spikes(fr_lgt, mask_lgt)
+        fr_drk_masked = u.mask_spikes(fr_drk, mask_drk)
         
         # Smooth data with Gaussian filter
         print("3. Smoothing spikes.")
-        sigma = u.compute_sigma(mouse.tau, SDfrac=SDfrac)
-        spikes_smoothed = u.gaussiansmooth_spikes(spikes_masked, mask, sigma)
+        # Smooth spikes and bin firing rates data by position
+        if smooth == True:
+            sigma = u.compute_sigma(mouse.tau, SDfrac=SDfrac)
+            spikes_lgt_smoothed = u.gaussiansmooth_spikes(
+                spikes_lgt_masked,
+                mask_lgt,
+                sigma
+            )
+            spikes_drk_smoothed = u.gaussiansmooth_spikes(
+                spikes_drk_masked,
+                mask_drk,
+                sigma
+            )
 
-        # Position binning and generating firing rates
-        print("4. Position Binning data and generating firing rates.")
-        fr_smoothed = u.posbinning_data(
-            spikes_smoothed, 
-            'spikes', 
-            mouse.position_mtx_masked, 
-            tunnellength, 
-            mouse.tau
-        )
-
-        # Split data into light and dark trials
-        print("5. Splitting light vs dark.")
-        spikes_lgt, spikes_drk = u.split_lightdark(spikes_masked, mouse.darktrials)
-        fr_lgt_smoothed, fr_drk_smoothed = u.split_lightdark(fr_smoothed, mouse.darktrials)
+            # Bin FR with spikes_smoothed
+            print("4. Position Binning spikes.")
+            fr_lgt_smoothed = u.posbinning_data(
+                spikes_lgt_smoothed, 
+                'spikes',
+                mouse.pos_lgt_masked,
+                tunnellength,
+                mouse.tau
+            )
+            fr_drk_smoothed = u.posbinning_data(
+                spikes_drk_smoothed, 
+                'spikes',
+                mouse.pos_drk_masked,
+                tunnellength,
+                mouse.tau
+            )
+        
+        else:
+            # Bin FR with spikerate provided
+            print("4. Position Binning spikerate.")
+            fr_lgt_smoothed = u.posbinning_data(
+                fr_lgt_masked, 
+                'npxl',
+                mouse.pos_lgt_masked,
+                tunnellength,
+                mouse.tau
+            )
+            fr_drk_smoothed = u.posbinning_data(
+                fr_drk_masked, 
+                'npxl',
+                mouse.pos_drk_masked,
+                tunnellength,
+                mouse.tau
+            )
 
         # Scale firing rates
-        print("6. Scaling firing rates.")
+        print("5. Scaling firing rates.")
         fr_lgt_scaled_smoothed, fr_drk_scaled_smoothed = u.scale_firingrate(fr_lgt_smoothed, fr_drk_smoothed)
        
         # Sort and chunk trials in list
-        print("Sorting trials and chunking trials.")
+        print("6. Sorting trials and chunking trials.")
         spikes_lgt_chunks = u.sort_and_chunk(mouse, spikes_lgt, 'lgt', discrete, num_chunks)
         spikes_drk_chunks = u.sort_and_chunk(mouse, spikes_drk, 'drk', discrete, num_chunks)
         fr_lgt_smoothed_chunks = u.sort_and_chunk(mouse, fr_lgt_smoothed, 'lgt', discrete, num_chunks)
@@ -420,7 +502,7 @@ def run_decoder_chance(
         decoded_pos_rep = {paradigm : [] for paradigm in paradigms}
 
         # Decoder training set options
-        print("8. Running decoder...")
+        print("7. Running decoder...")
         training_lgtlgt = fr_lgt_smoothed_chunks
         training_drkdrk = fr_drk_smoothed_chunks
         if scale == True:
@@ -490,8 +572,9 @@ def run_decoder_chance(
     return posterior_allreps, decoded_pos_allreps
 
 
+
 def run_results(
-        mouse: d.CaImgData | d.NpxlData | d.NpxlData, 
+        mouse: d.CaimData | d.NpxlData | d.NpxlData, 
         num_pbins: int = 46
 ) -> tuple:
     """
@@ -650,7 +733,7 @@ def run_results(
 
 def run_results_chunks(
         mouse,
-        num_chunks: int = 10,
+        num_chunks: int = 6,
         num_pbins: int = 46,
         discrete: bool = True
 ):
@@ -737,68 +820,99 @@ def run_results_chunks(
 
 
 def run_results_chance(
-        mouse: d.CaImgData | d.NpxlData, 
+        mouse: d.NpxlData, 
         num_reps: int = 100,
-        num_chunks: int = 10,
+        num_chunks: int = 6,
         discrete: bool = True
 ):
     """
     """
-    # Chunk position matrix
-    pos_lgt_chunks = u.sort_and_chunk(mouse, mouse.pos_lgt_masked, 'lgt', discrete, num_chunks)
-    pos_drk_chunks = u.sort_and_chunk(mouse, mouse.pos_drk_masked, 'drk', discrete, num_chunks)
-
-    # Intialise output
     paradigms = ['lgtlgt', 'drkdrk', 'lgtdrk', 'drklgt']
-    accuracy_rate_allreps = {paradigm:[] for paradigm in paradigms}
-    mean_error_allreps = {paradigm:[] for paradigm in paradigms}
-    median_error_allreps = {paradigm:[] for paradigm in paradigms}
-    rt_mse_allreps = {paradigm:[] for paradigm in paradigms}
+    
+    # Initialise final outputs
+    mean_accuracy_allreps = []
+    mean_error_allreps = []
+    median_error_allreps = []
+    rt_mse_allreps = []
+    mean_wt_error_allreps = []
+    MostFreqPred_error_allreps = []
+
+    # Sort and chunk true positions
+    pos_lgt_sorted = np.concatenate(u.sort_and_chunk(mouse, mouse.pos_lgt_masked, 'lgt', discrete, num_chunks), axis=0)
+    pos_drk_sorted = np.concatenate(u.sort_and_chunk(mouse, mouse.pos_drk_masked, 'drk', discrete, num_chunks), axis=0)
 
     for rep in range(num_reps):
-        # Initialise dict for storing accuracy and error values for all chunks
-        accuracy_mtx_rep = {paradigm: [] for paradigm in paradigms}
-        accuracy_rate_rep = {paradigm: [] for paradigm in paradigms}
-        errors_rep = {paradigm: [] for paradigm in paradigms}
+        # Initialise trial outputs
+        trial_accuracy = {paradigm: [] for paradigm in paradigms}
+        trial_mean_error = {paradigm: [] for paradigm in paradigms}
+        trial_median_error = {paradigm: [] for paradigm in paradigms}
+        trial_rt_mse = {paradigm: [] for paradigm in paradigms}
+        trial_wt_error = {paradigm: [] for paradigm in paradigms}
+
+        # Intialise rep outputs
+        MostFreqPred_error_rep = {paradigm: [] for paradigm in paradigms}
+        mean_accuracy_rep = {paradigm: [] for paradigm in paradigms}
         mean_error_rep = {paradigm: [] for paradigm in paradigms}
         median_error_rep = {paradigm: [] for paradigm in paradigms}
         rt_mse_rep = {paradigm: [] for paradigm in paradigms}
+        mean_wt_error_rep = {paradigm: [] for paradigm in paradigms}
 
         for paradigm in paradigms:
-            for chunk in range(num_chunks):
-                # Set true position
-                if paradigm == 'lgtlgt' or paradigm == 'drklgt':
-                    true = pos_lgt_chunks[chunk]
-                elif paradigm == 'drkdrk' or paradigm == 'lgtdrk':
-                    true = pos_drk_chunks[chunk]
-                # Set predicted position and create mask for time bins where there are predictions
-                pred = mouse.decoded_pos_allreps[rep][chunk][paradigm]
-                pred_mask = ~np.isnan(pred)
+            # Set true position
+            if paradigm == 'lgtlgt' or paradigm == 'drklgt':
+                true = pos_lgt_sorted
+            elif paradigm == 'drkdrk' or paradigm == 'lgtdrk':
+                true = pos_drk_sorted
 
-                # True/False matrix of pred pos == true pos, where there are decoder predictions
-                accuracy_mtx_rep[paradigm].extend(pred[pred_mask] == true[pred_mask])
+            # Set predicted position
+            pred = mouse.decoded_pos_allreps[rep][paradigm]
+            pred_mask = ~np.isnan(pred)
 
-                # Compute error for each time bin where there are decoder predictions
-                errors_rep[paradigm].extend(abs(np.subtract(pred[pred_mask], true[pred_mask])))
+            # Set posterior
+            posterior = mouse.posterior_allreps[rep][paradigm]
+            num_trials, num_tbins, num_pbins = posterior.shape
 
-            # Compute accuracy rate
-            accuracy_rate_rep[paradigm] = np.sum(accuracy_mtx_rep[paradigm]) / len(accuracy_mtx_rep[paradigm])
+            for pos in range(num_pbins):
+                # Count frequency for each possible predicted position
+                pred_pos_count, num_preds = r.get_pred_pos_count(true, pred, pos)
 
-            # Compute mean error, median error and root MSE
-            mean_error_rep[paradigm] = np.nanmean(errors_rep[paradigm])
-            median_error_rep[paradigm] = np.nanmedian(errors_rep[paradigm])
-            rt_mse_rep[paradigm] = np.sqrt(np.nanmean(np.square(errors_rep[paradigm])))
+                # Compute error for most frequently predicted position
+                MostFreqPred_error_rep[paradigm].append(r.get_MostFreqPred_error(pred_pos_count, pos))
+            MostFreqPred_error_rep[paradigm] = np.nanmean(MostFreqPred_error_rep[paradigm])
 
-            # Append results of each rep
-            accuracy_rate_allreps[paradigm].extend(accuracy_rate_rep[paradigm])
-            mean_error_allreps[paradigm].extend(mean_error_rep[paradigm])
-            median_error_allreps[paradigm].extend(median_error_rep[paradigm])
-            rt_mse_allreps[paradigm].extend(rt_mse_rep[paradigm])
+            for trial in range(num_trials):
+                # Get trial accuracy, mean_error, median_error, rt_mse, wt_error
+                accuracy = r.get_trial_accuracy(true, pred, pred_mask, trial)
+                errors = r.get_trial_errors(true, pred, pred_mask, trial)
+                wt_error = r.get_trial_wt_error(true, posterior, trial, num_tbins, num_pbins)
 
-    results = {
-        'accuracy_rate_allreps': accuracy_rate_allreps,
+                trial_accuracy[paradigm].append(accuracy)
+                trial_mean_error[paradigm].append(np.nanmean(errors))
+                trial_median_error[paradigm].append(np.nanmedian(errors))
+                trial_rt_mse[paradigm].append(np.sqrt(np.nanmean(np.square(errors))))
+                trial_wt_error[paradigm].append(wt_error)
+
+            # Average accuracy and errors across trials                                  
+            mean_accuracy_rep[paradigm] = np.nanmean(trial_accuracy[paradigm])
+            mean_error_rep[paradigm] = np.nanmean(trial_mean_error[paradigm])
+            median_error_rep[paradigm] = np.nanmean(trial_median_error[paradigm])
+            rt_mse_rep[paradigm] = np.nanmean(trial_rt_mse[paradigm])
+            mean_wt_error_rep[paradigm] = np.nanmean(trial_wt_error[paradigm])
+        
+        # Append rep outputs to final outputs
+        mean_accuracy_allreps.append(mean_accuracy_rep)
+        mean_error_allreps.append(mean_error_rep)
+        median_error_allreps.append(median_error_rep)
+        rt_mse_allreps.append(rt_mse_rep)
+        mean_wt_error_allreps.append(mean_wt_error_rep)
+        MostFreqPred_error_allreps.append(MostFreqPred_error_rep)
+
+    results_allreps = {
+        'mean_accuracy_allreps': mean_accuracy_allreps,
         'mean_error_allreps': mean_error_allreps,
         'median_error_allreps': median_error_allreps,
-        'rt_mse_allreps': rt_mse_allreps
+        'rt_mse_allreps': rt_mse_allreps,
+        'mean_wt_error_allreps': mean_wt_error_allreps,
+        'MostFreqPred_error_allreps': MostFreqPred_error_allreps
     } 
-    return results
+    return results_allreps
