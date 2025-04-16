@@ -817,6 +817,7 @@ def run_results_chance(
     median_error_allreps = []
     rt_mse_allreps = []
     mean_wt_error_allreps = []
+    MostFreqPred_error_allreps = []
 
     # Sort and chunk true positions
     pos_lgt_sorted = np.concatenate(u.sort_and_chunk(mouse, mouse.pos_lgt_masked, 'lgt', discrete, num_chunks), axis=0)
@@ -886,13 +887,15 @@ def run_results_chance(
         median_error_allreps.append(median_error_rep)
         rt_mse_allreps.append(rt_mse_rep)
         mean_wt_error_allreps.append(mean_wt_error_rep)
+        MostFreqPred_error_allreps.append(MostFreqPred_error_rep)
 
     results_allreps = {
         'mean_accuracy_allreps': mean_accuracy_allreps,
         'mean_error_allreps': mean_error_allreps,
         'median_error_allreps': median_error_allreps,
         'rt_mse_allreps': rt_mse_allreps,
-        'mean_wt_error_allreps': mean_wt_error_allreps
+        'mean_wt_error_allreps': mean_wt_error_allreps,
+        'MostFreqPred_error_allreps': MostFreqPred_error_allreps
     } 
     return results_allreps
 
