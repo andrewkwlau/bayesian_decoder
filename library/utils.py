@@ -1,10 +1,34 @@
 import sys
 import os
 import numpy as np
+import pandas as pd
 from scipy.ndimage import gaussian_filter1d
 
 sys.path.append(os.path.abspath('../library'))
 import data as d
+
+
+def get_trial_start(
+        mouse,
+        meta_filepath
+):
+    """
+    """
+    meta = pd.read_csv(meta_filepath, sep='\t', on_bad_lines='skip')
+
+    step = float(meta[meta['mouse_id'] == 'rand_start_int'][mouse.mouse_ID].values[0])
+    start = float(meta[meta['mouse_id'] == 'rand_start'][mouse.mouse_ID].values[0])
+    end = float(meta[meta['mouse_id'] == 'rand_start_lim'][mouse.mouse_ID].values[0]) + step
+    
+    trial_start = np.arange(start, end, step) // 10 + 1
+    num_chunks = len(trial_start)
+
+    print(f"start: {start}, end: {end}, step: {step}")
+    print("trial_start locations:", trial_start)
+    print("number of chunks:", num_chunks)
+
+    return trial_start, num_chunks
+
 
 def get_firstx_pos(position_mtx: np.ndarray, x: int) -> np.ndarray:
     """
