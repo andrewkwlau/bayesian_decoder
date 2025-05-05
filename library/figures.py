@@ -16,7 +16,8 @@ def plot_single_tuning(
         data: np.ndarray,
         data_type: str,
         neuron_idx: int = None,
-        save: bool = False
+        save: bool = False,
+        filepath: str = None
 ):
     """
     Plot single neuron spatial tuning curves averaged across both light and dark trials.
@@ -95,10 +96,7 @@ def plot_single_tuning(
     ax1.axvline(0, linewidth=1, color="white")
 
     if save == True:
-        plt.savefig(
-            '../assets/savefig/'+ mouse.mouse_ID +'_single_tuning_neuron_'+ str(neuron_idx) +'.png',
-            dpi=300
-        )       
+        plt.savefig(filepath, dpi=300)     
     plt.show()
 
 
@@ -107,7 +105,8 @@ def plot_single_heatmap(
         data: np.ndarray,
         data_type: str,
         neuron_idx: int = None,
-        save: bool = False
+        save: bool = False,
+        filepath: str = None
 ):
     """
     Plot single neuron spatial tuning curves heatmap for both light and dark trials.
@@ -190,10 +189,7 @@ def plot_single_heatmap(
         cbar.set_label("firing rate (Hz)")
 
     if save == True:
-        plt.savefig(
-            '../assets/savefig/'+ mouse.mouse_ID +'_single_heatmap_'+ str(neuron_idx) +'.png',
-            dpi=300
-        )     
+        plt.savefig(filepath, dpi=300)   
     plt.show()
 
 
@@ -201,7 +197,8 @@ def plot_confusion_mtx(
         mouse: d.CaimData | d.NpxlData,
         confusion_mtx: np.ndarray,
         paradigm: str,
-        save: bool = False
+        save: bool = False,
+        filepath: str = None
 ):
     """
     Plot confusion matrix.
@@ -259,10 +256,7 @@ def plot_confusion_mtx(
     cbar.set_label("% of decoded position for each true position")
 
     if save == True:
-        plt.savefig(
-            '../assets/savefig/'+ mouse.mouse_ID +'_confusion_mtx_'+ paradigm +'.png',
-            dpi=300
-        )
+        plt.savefig(filepath, dpi=300)
     plt.show()
 
 
@@ -272,6 +266,7 @@ def plot_accuracy(
         chance_results: dict,
         num_reps: int,
         save: bool = False,
+        filepath: str = None
 ):
     """
     """
@@ -321,10 +316,7 @@ def plot_accuracy(
     ax1.legend(handles=handles, labels=labels)
 
     if save == True:
-        plt.savefig(
-            '../assets/savefig/'+ mouse.mouse_ID +'_accuracy.png',
-            dpi=300
-        )
+        plt.savefig(filepath, dpi=300)
 
     plt.show()
 
@@ -335,6 +327,7 @@ def plot_errors(
         chance_results: dict,
         num_reps: int,
         save: bool = False,
+        filepath: str = None
 ):
     """
     """
@@ -384,10 +377,7 @@ def plot_errors(
     ax1.legend(handles=handles, labels=labels)
 
     if save == True:
-        plt.savefig(
-            '../assets/savefig/'+ mouse.mouse_ID +'_errors.png',
-            dpi=300
-        )
+        plt.savefig(filepath, dpi=300)
 
     plt.show()
 
