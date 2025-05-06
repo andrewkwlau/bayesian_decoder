@@ -1,10 +1,34 @@
 import sys
 import os
 import numpy as np
+import pandas as pd
 from scipy.ndimage import gaussian_filter1d
 
 sys.path.append(os.path.abspath('../library'))
 import data as d
+
+
+def get_trial_start(
+        mouse,
+        meta_filepath
+):
+    """
+    """
+    meta = pd.read_csv(meta_filepath, sep='\t', on_bad_lines='skip')
+
+    step = float(meta[meta['mouse_id'] == 'rand_start_int'][mouse.mouse_ID].values[0])
+    start = float(meta[meta['mouse_id'] == 'rand_start'][mouse.mouse_ID].values[0])
+    end = float(meta[meta['mouse_id'] == 'rand_start_lim'][mouse.mouse_ID].values[0]) + step
+    
+    trial_start = np.arange(start, end, step) // 10 + 1
+    num_chunks = len(trial_start)
+
+    print(f"start: {start}, end: {end}, step: {step}")
+    print("trial_start locations:", trial_start)
+    print("number of chunks:", num_chunks)
+
+    return trial_start, num_chunks
+
 
 def get_firstx_pos(position_mtx: np.ndarray, x: int) -> np.ndarray:
     """
@@ -651,6 +675,52 @@ def sort_and_chunk(
     new_trial_index = np.argsort(start_location)
     print(trial_start_sorted)
     
+    # Rearrange data with new trial index
+    data_sorted = data[new_trial_index]
+
+    # Chunk trials
+    # if trials have discete start location
+    if discrete == True:
+        data_list = []
+        for start_location in np.unique(trial_start_sorted):
+            # Find indices of trials that have the same start location
+            indices = np.where(trial_start_sorted == start_location)[0]
+            data_list.append(data_sorted[indices])
+    else:
+        data_list = np.array_split(data_sorted, num_chunks, axis=0)
+
+    for chunk in data_list:
+        print(chunk.shape)
+    
+    return data_list
+
+
+def sort_and_chunk_npxl(
+        mouse: d.NpxlData,
+        data,
+        data_condition,
+        num_chunks: int,
+        discrete: bool = True
+):
+    """
+    """
+    num_trials = data.shape[0]
+
+    actual_start = []
+
+    for trial in range(num_trials):
+        if data_condition == 'lgt':
+            first_pos = mouse.pos_lgt[trial,0]
+        elif data_condition == 'drk':
+            first_pos = mouse.pos_drk[trial,0]
+
+        closest_start = mouse.start_locations[np.argmin(np.abs(mouse.start_locations - first_pos))]
+        actual_start.append(closest_start)
+
+    trial_start_sorted = np.sort(actual_start)
+    new_trial_index = np.argsort(actual_start)
+    print(trial_start_sorted)
+
     # Rearrange data with new trial index
     data_sorted = data[new_trial_index]
 

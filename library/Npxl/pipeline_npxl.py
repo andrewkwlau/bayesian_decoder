@@ -7,7 +7,7 @@ from collections import Counter
 
 sys.path.append(os.path.abspath('../library'))
 import data as d
-import utils as u
+import utils_npxl as u
 import bayes as b
 import results as r
 
@@ -22,8 +22,8 @@ def get_tuning_curves(
     """
     """
     # Find first x position
-    mouse.firstx_pos_lgt = u.get_firstx_pos(mouse.pos_lgt, x)
-    mouse.firstx_pos_drk = u.get_firstx_pos(mouse.pos_drk, x)
+    mouse.firstx_pos_lgt = u.get_firstx_pos(mouse, mouse.pos_lgt, x)
+    mouse.firstx_pos_drk = u.get_firstx_pos(mouse, mouse.pos_drk, x)
 
     # Create mask
     mouse.mask_lgt = u.create_spikesmask(
@@ -294,14 +294,14 @@ def run_decoder_chunks(
 
     # Sort and chunk trials in list
     print("Sorting trials and chunking trials.")
-    spikes_lgt_chunks = u.sort_and_chunk(mouse, mouse.spikes_lgt, 'lgt', discrete, num_chunks)
-    spikes_drk_chunks = u.sort_and_chunk(mouse, mouse.spikes_drk, 'drk', discrete, num_chunks)
-    fr_lgt_smoothed_chunks = u.sort_and_chunk(mouse, mouse.fr_lgt_smoothed, 'lgt', discrete, num_chunks)
-    fr_drk_smoothed_chunks = u.sort_and_chunk(mouse, mouse.fr_drk_smoothed, 'drk', discrete, num_chunks)
-    fr_lgt_scaled_smoothed_chunks = u.sort_and_chunk(mouse, mouse.fr_lgt_scaled_smoothed, 'lgt', discrete, num_chunks)
-    fr_drk_scaled_smoothed_chunks = u.sort_and_chunk(mouse, mouse.fr_drk_scaled_smoothed, 'drk', discrete, num_chunks)
-    triallength_lgt_chunks = u.sort_and_chunk(mouse, mouse.triallength_lgt, 'lgt', discrete, num_chunks)
-    triallength_drk_chunks = u.sort_and_chunk(mouse, mouse.triallength_drk, 'drk', discrete, num_chunks)
+    spikes_lgt_chunks = u.sort_and_chunk(mouse, mouse.spikes_lgt, 'lgt', mouse.num_chunks, discrete)
+    spikes_drk_chunks = u.sort_and_chunk(mouse, mouse.spikes_drk, 'drk', mouse.num_chunks, discrete)
+    fr_lgt_smoothed_chunks = u.sort_and_chunk(mouse, mouse.fr_lgt_smoothed, 'lgt', mouse.num_chunks, discrete)
+    fr_drk_smoothed_chunks = u.sort_and_chunk(mouse, mouse.fr_drk_smoothed, 'drk', mouse.num_chunks, discrete)
+    fr_lgt_scaled_smoothed_chunks = u.sort_and_chunk(mouse, mouse.fr_lgt_scaled_smoothed, 'lgt', mouse.num_chunks, discrete)
+    fr_drk_scaled_smoothed_chunks = u.sort_and_chunk(mouse, mouse.fr_drk_scaled_smoothed, 'drk', mouse.num_chunks, discrete)
+    triallength_lgt_chunks = u.sort_and_chunk(mouse, mouse.triallength_lgt, 'lgt', mouse.num_chunks, discrete)
+    triallength_drk_chunks = u.sort_and_chunk(mouse, mouse.triallength_drk, 'drk', mouse.num_chunks, discrete)
 
     # Intialise output
     paradigms = ['lgtlgt', 'drkdrk', 'lgtdrk', 'drklgt']
@@ -395,8 +395,8 @@ def run_decoder_chance(
 
     # Chunking trial lengths
     print("1. Masking position matrix and getting trial lengths.")
-    triallength_lgt_chunks = u.sort_and_chunk(mouse, mouse.triallength_lgt, 'lgt', discrete, num_chunks)
-    triallength_drk_chunks = u.sort_and_chunk(mouse, mouse.triallength_drk, 'drk', discrete, num_chunks)
+    triallength_lgt_chunks = u.sort_and_chunk(mouse, mouse.triallength_lgt, 'lgt', mouse.num_chunks, discrete)
+    triallength_drk_chunks = u.sort_and_chunk(mouse, mouse.triallength_drk, 'drk', mouse.num_chunks, discrete)
 
     for rep in range(num_reps):
         print("Rep ", rep, " start...")
@@ -489,12 +489,12 @@ def run_decoder_chance(
        
         # Sort and chunk trials in list
         print("6. Sorting trials and chunking trials.")
-        spikes_lgt_chunks = u.sort_and_chunk(mouse, spikes_lgt, 'lgt', discrete, num_chunks)
-        spikes_drk_chunks = u.sort_and_chunk(mouse, spikes_drk, 'drk', discrete, num_chunks)
-        fr_lgt_smoothed_chunks = u.sort_and_chunk(mouse, fr_lgt_smoothed, 'lgt', discrete, num_chunks)
-        fr_drk_smoothed_chunks = u.sort_and_chunk(mouse, fr_drk_smoothed, 'drk', discrete, num_chunks)
-        fr_lgt_scaled_smoothed_chunks = u.sort_and_chunk(mouse, fr_lgt_scaled_smoothed, 'lgt', discrete, num_chunks)
-        fr_drk_scaled_smoothed_chunks = u.sort_and_chunk(mouse, fr_drk_scaled_smoothed, 'drk', discrete, num_chunks)
+        spikes_lgt_chunks = u.sort_and_chunk(mouse, spikes_lgt, 'lgt', mouse.num_chunks, discrete)
+        spikes_drk_chunks = u.sort_and_chunk(mouse, spikes_drk, 'drk', mouse.num_chunks, discrete)
+        fr_lgt_smoothed_chunks = u.sort_and_chunk(mouse, fr_lgt_smoothed, 'lgt', mouse.num_chunks, discrete)
+        fr_drk_smoothed_chunks = u.sort_and_chunk(mouse, fr_drk_smoothed, 'drk', mouse.num_chunks, discrete)
+        fr_lgt_scaled_smoothed_chunks = u.sort_and_chunk(mouse, fr_lgt_scaled_smoothed, 'lgt', mouse.num_chunks, discrete)
+        fr_drk_scaled_smoothed_chunks = u.sort_and_chunk(mouse, fr_drk_scaled_smoothed, 'drk', mouse.num_chunks, discrete)
 
         # Intialise output
         paradigms = ['lgtlgt', 'drkdrk', 'lgtdrk', 'drklgt']
@@ -758,8 +758,8 @@ def run_results_chunks(
     mean_wt_error = {paradigm: [] for paradigm in paradigms}
     
     # Sort and chunk trials
-    pos_lgt_sorted = np.concatenate(u.sort_and_chunk(mouse, mouse.pos_lgt_masked, 'lgt', discrete, num_chunks), axis=0)
-    pos_drk_sorted = np.concatenate(u.sort_and_chunk(mouse, mouse.pos_drk_masked, 'drk', discrete, num_chunks), axis=0)
+    pos_lgt_sorted = np.concatenate(u.sort_and_chunk(mouse, mouse.pos_lgt_masked, 'lgt', mouse.num_chunks, discrete), axis=0)
+    pos_drk_sorted = np.concatenate(u.sort_and_chunk(mouse, mouse.pos_drk_masked, 'drk', mouse.num_chunks, discrete), axis=0)
 
     for paradigm in paradigms:
         # Set true position
@@ -838,8 +838,8 @@ def run_results_chance(
     MostFreqPred_error_allreps = []
 
     # Sort and chunk true positions
-    pos_lgt_sorted = np.concatenate(u.sort_and_chunk(mouse, mouse.pos_lgt_masked, 'lgt', discrete, num_chunks), axis=0)
-    pos_drk_sorted = np.concatenate(u.sort_and_chunk(mouse, mouse.pos_drk_masked, 'drk', discrete, num_chunks), axis=0)
+    pos_lgt_sorted = np.concatenate(u.sort_and_chunk(mouse, mouse.pos_lgt_masked, 'lgt', mouse.num_chunks, discrete), axis=0)
+    pos_drk_sorted = np.concatenate(u.sort_and_chunk(mouse, mouse.pos_drk_masked, 'drk', mouse.num_chunks, discrete), axis=0)
 
     for rep in range(num_reps):
         # Initialise trial outputs
