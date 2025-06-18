@@ -8,12 +8,14 @@ datafiles/C57_60_Octavius/Shuffled_time_binned_SpikeInf_200msbins.mat
 datafiles/C57_61_Priamus
 datafiles/C57_913_Qiu
 datafiles/C57_915_Serena
-datafiles/Neuropixel
+datafiles/VDCN09
 
 library/.DS_Store
 library/__pycache__
 
 obsolete
+
+results
 
 scripts/.DS_Store
 scripts/chance.ipynb
@@ -29,3 +31,5 @@ scripts/test_pca.ipynb
 scripts/test_priamus.ipynb
 scripts/test_serena.ipynb
 scripts/test.ipynb
+
+variables
