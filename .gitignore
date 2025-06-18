@@ -19,7 +19,8 @@ results
 
 scripts/.DS_Store
 scripts/chance.ipynb
-scripts/main.ipynb
+scripts/main_caim.ipynb
+scripts/main_npxl.ipynb
 scripts/napoleon.ipynb
 scripts/octavius.ipynb
 scripts/priamus.ipynb

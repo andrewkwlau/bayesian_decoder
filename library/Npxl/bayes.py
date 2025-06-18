@@ -4,11 +4,11 @@ import numpy as np
 from scipy.special import factorial
 
 sys.path.append(os.path.abspath('../library/Npxl'))
-import data as d
+import data_npxl as d
 import utils_npxl as u
 
 def bayesian_decoder(
-        mouse: d.CaimData | d.NpxlData, 
+        mouse: d.NpxlData, 
         training_fr: np.ndarray, 
         testing_spikes: np.ndarray, 
         num_pbins: int,
@@ -154,7 +154,7 @@ def bayesian_decoder(
 
 
 def bayesian_decoder_chunks(
-        mouse: d.CaimData | d.NpxlData, 
+        mouse: d.NpxlData, 
         training_fr_chunk: np.ndarray, 
         testing_spikes_chunk: np.ndarray,
         trial_length_chunk: np.ndarray,
