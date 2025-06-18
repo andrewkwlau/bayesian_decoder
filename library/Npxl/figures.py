@@ -8,11 +8,11 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 sys.path.append(os.path.abspath('../library/Npxl'))
-import data as d
+import data_npxl as d
 import utils_npxl as u
 
 def plot_single_tuning(
-        mouse: d.CaimData | d.NpxlData,
+        mouse: d.NpxlData,
         data: np.ndarray,
         data_type: str,
         neuron_idx: int = None,
@@ -101,7 +101,7 @@ def plot_single_tuning(
 
 
 def plot_single_heatmap(
-        mouse: d.CaimData | d.NpxlData,
+        mouse:  d.NpxlData,
         data: np.ndarray,
         data_type: str,
         neuron_idx: int = None,
@@ -194,7 +194,7 @@ def plot_single_heatmap(
 
 
 def plot_confusion_mtx(
-        mouse: d.CaimData | d.NpxlData,
+        mouse:  d.NpxlData,
         confusion_mtx: np.ndarray,
         paradigm: str,
         save: bool = False,
@@ -219,7 +219,7 @@ def plot_confusion_mtx(
     """
     # Initialise figure
     fig, (ax1) = plt.subplots(1, figsize=(6,6))
-    fig.tight_layout(pad=3)
+    fig.tight_layout(pad=1)
 
     # Plot
     im1 = ax1.imshow(confusion_mtx, cmap="turbo", vmax=1)
@@ -261,7 +261,7 @@ def plot_confusion_mtx(
 
 
 def plot_accuracy(
-        mouse: d.CaimData | d.NpxlData,
+        mouse:  d.NpxlData,
         decoder_results: dict,
         chance_results: dict,
         num_reps: int,
@@ -322,7 +322,7 @@ def plot_accuracy(
 
 
 def plot_errors(
-        mouse: d.CaimData | d.NpxlData,
+        mouse:  d.NpxlData,
         decoder_results: dict,
         chance_results: dict,
         num_reps: int,

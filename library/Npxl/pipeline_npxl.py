@@ -6,7 +6,7 @@ from sklearn.decomposition import PCA
 from collections import Counter
 
 sys.path.append(os.path.abspath('../library'))
-import data as d
+import data_npxl as d
 import utils_npxl as u
 import bayes as b
 import results as r
@@ -574,7 +574,7 @@ def run_decoder_chance(
 
 
 def run_results(
-        mouse: d.CaimData | d.NpxlData | d.NpxlData, 
+        mouse: d.NpxlData, 
         num_pbins: int = 46
 ) -> tuple:
     """
