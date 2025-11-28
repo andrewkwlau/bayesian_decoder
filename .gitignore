@@ -8,10 +8,13 @@ datafiles/C57_60_Octavius/Shuffled_time_binned_SpikeInf_200msbins.mat
 datafiles/C57_61_Priamus
 datafiles/C57_913_Qiu
 datafiles/C57_915_Serena
+datafiles/VDCN04
 datafiles/VDCN09
 
 library/.DS_Store
 library/__pycache__
+library/Caim/__pycache__
+library/Npxl/__pycache__
 
 obsolete
 
