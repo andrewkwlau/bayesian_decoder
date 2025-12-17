@@ -4,15 +4,14 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+
 
 sys.path.append(os.path.abspath('../library/Npxl'))
-import data_npxl as d
-import utils_npxl as u
+import data as d
+import utils as u
 
 def plot_single_tuning(
-        mouse: d.NpxlData,
+        mouse: d.Data,
         data: np.ndarray,
         data_type: str,
         neuron_idx: int = None,
@@ -101,7 +100,7 @@ def plot_single_tuning(
 
 
 def plot_single_heatmap(
-        mouse:  d.NpxlData,
+        mouse:  d.Data,
         data: np.ndarray,
         data_type: str,
         neuron_idx: int = None,
@@ -194,7 +193,6 @@ def plot_single_heatmap(
 
 
 def plot_confusion_mtx(
-        mouse:  d.NpxlData,
         confusion_mtx: np.ndarray,
         paradigm: str,
         save: bool = False,
@@ -233,14 +231,13 @@ def plot_confusion_mtx(
         'yticks':[-0.5, 9.5, 19.5, 29.5, 39.5, 45.5],
         'yticklabels':[0, 100, 200, 300, 400, 460]
     }   
-    if paradigm == 'lgtlgt':
-        ax1.set(title = 'Trained in Light, Test in Light', **ax_settings)
-    elif paradigm == 'drkdrk':
-        ax1.set(title = 'Trained in Dark, Test in Dark', **ax_settings)
-    elif paradigm == 'lgtdrk':
-        ax1.set(title = 'Trained in Light, Test in Dark', **ax_settings)
-    elif paradigm == 'drklgt':
-        ax1.set(title = 'Trained in Dark, Test in Light', **ax_settings)
+    titles = {
+        'lgtlgt': 'Trained in Light, Test in Light',
+        'drkdrk': 'Trained in Dark, Test in Dark',
+        'lgtdrk': 'Trained in Light, Test in Dark',
+        'drklgt': 'Trained in Dark, Test in Light'
+    }
+    ax1.set(title=titles[paradigm], **ax_settings)
 
     # Labelling landmarks
     landmark = [11, 13, 19, 21, 27, 29, 35, 37, 44, 46]
@@ -260,8 +257,45 @@ def plot_confusion_mtx(
     plt.show()
 
 
+
+def plot_relative_confusion_mtx(
+        confusion_mtx: np.ndarray,
+        paradigm: str,
+        save: bool = False,
+        filepath: str = None
+):
+    """
+    """
+    fig, (ax1) = plt.subplots(1, figsize=(6,6))
+    fig.tight_layout(pad=1)
+    # Plot
+    im1 = ax1.imshow(confusion_mtx, cmap="turbo", vmax=1)
+    # Figure Settings
+    ax_settings = {
+        'xlabel':'decoded relative position',
+        'ylabel':'true relative position',
+    }
+    titles = {
+        'lgtlgt': 'Trained in Light, Test in Light',
+        'drkdrk': 'Trained in Dark, Test in Dark',
+        'lgtdrk': 'Trained in Light, Test in Dark',
+        'drklgt': 'Trained in Dark, Test in Light'
+    }
+    ax1.set(title=titles[paradigm], **ax_settings)
+    # Add Diagonal
+    ax1.plot([1, 0], [0, 1], transform=ax1.transAxes, linewidth=1)
+    # Add colour bar
+    cbar = fig.colorbar(im1, ax=ax1, shrink=0.75)
+    cbar.set_label("% of decoded position for each true position")
+    
+    if save == True:
+        plt.savefig(filepath, dpi=300)
+    plt.show()
+
+
+
 def plot_accuracy(
-        mouse:  d.NpxlData,
+        mouse:  d.Data,
         decoder_results: dict,
         chance_results: dict,
         num_reps: int,
@@ -322,7 +356,7 @@ def plot_accuracy(
 
 
 def plot_errors(
-        mouse:  d.NpxlData,
+        mouse:  d.Data,
         decoder_results: dict,
         chance_results: dict,
         num_reps: int,
@@ -380,80 +414,3 @@ def plot_errors(
         plt.savefig(filepath, dpi=300)
 
     plt.show()
-
-
-def plot_pca_3d(
-        mouse,
-        num_chunks: int,
-        trial_avg: bool = False
-):
-    """
-    """
-    chunk_titles = np.sort([f'Chunk {i}' for i in range(num_chunks)] * 2)
-
-    # Create a subplot figure with 10 rows, 2 columns (one column for each condition)
-    fig = make_subplots(rows=10, cols=2, 
-                        shared_xaxes=True,
-                        subplot_titles=chunk_titles,
-                        specs=[[{'type': 'scatter3d'}, {'type': 'scatter3d'}]] * 10,
-                        vertical_spacing=0.01)
-    
-    # Loop through chunks
-    for chunk in range(num_chunks):
-        data_lgt = mouse.fr_lgt_reconstructed
-        data_drk = mouse.fr_drk_reconstructed
-
-        # Loop through each trial and add a scatter plot for the points
-        for trial in range(data_lgt[chunk].shape[0]):
-            if trial_avg == True:
-                x = np.nanmean(data_lgt[chunk], axis=0)[:, 0]
-                y = np.nanmean(data_lgt[chunk], axis=0)[:, 1]
-                z = np.nanmean(data_lgt[chunk], axis=0)[:, 2]
-            else:
-                x = data_lgt[chunk][trial, :, 0]
-                y = data_lgt[chunk][trial, :, 1]
-                z = data_lgt[chunk][trial, :, 2]
-
-            # Create a gradient color based on the index
-            colors = np.linspace(0, 1, len(x))  # Normalized from 0 to 1
-
-            # Add trace to the correct subplot (row=chunk+1 since indexing starts from 1)
-            fig.add_trace(go.Scatter3d(
-                x=x, y=y, z=z,
-                marker=dict(size=2, color=colors, colorscale='Viridis'),
-                line=dict(color=colors, colorscale='Viridis', width=3),
-                mode='lines+markers'
-            ), row=chunk+1, col=1)
-
-        # Loop through each trial and add a scatter plot for the points
-        for trial in range(data_drk[chunk].shape[0]):
-            if trial_avg == True:
-                x = np.nanmean(data_drk[chunk], axis=0)[:, 0]
-                y = np.nanmean(data_drk[chunk], axis=0)[:, 1]
-                z = np.nanmean(data_drk[chunk], axis=0)[:, 2]
-            else:
-                x = data_drk[chunk][trial, :, 0]
-                y = data_drk[chunk][trial, :, 1]
-                z = data_drk[chunk][trial, :, 2]
-
-            # Create a gradient color based on the index
-            colors = np.linspace(0, 1, len(x))  # Normalized from 0 to 1
-
-            # Add trace to the correct subplot (row=chunk+1 since indexing starts from 1)
-            fig.add_trace(go.Scatter3d(
-                x=x, y=y, z=z,
-                marker=dict(size=2, color=colors, colorscale='Viridis'),
-                line=dict(color=colors, colorscale='Viridis', width=3),
-                mode='lines+markers'
-            ), row=chunk+1, col=2)
-        
-    # Update layout
-    fig.update_layout(
-        height=4000,  # Adjust height to fit all subplots
-        width=1000,
-        title=f'Plot of Light and Dark PCA Components for {mouse.mouse_ID}',
-        showlegend=False
-    )
-
-    # Show the figure
-    fig.show()
