@@ -1,18 +1,6 @@
 .DS_Store
 
-assets/savefig
-
-datafiles/C57_59_Napoleon
-datafiles/C57_60_Octavius/Shuffled_time_binned_DiscreteSpikes_200msbins.mat
-datafiles/C57_60_Octavius/Shuffled_time_binned_SpikeInf_200msbins.mat
-datafiles/C57_61_Priamus
-datafiles/C57_913_Qiu
-datafiles/C57_915_Serena
-datafiles/VDCN01
-datafiles/VDCN02
-datafiles/VDCN04
-datafiles/VDCN05
-datafiles/VDCN09
+datafiles/
 
 library/.DS_Store
 library/__pycache__
@@ -31,6 +19,7 @@ scripts/napoleon.ipynb
 scripts/octavius.ipynb
 scripts/priamus.ipynb
 scripts/qiu.ipynb
+scripts/rnn.ipynb
 scripts/serena.ipynb
 scripts/test_npxl.ipynb
 scripts/test_npxl_areas.ipynb
