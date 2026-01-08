@@ -7,21 +7,17 @@ from pathlib import Path
 
 
 
-data_dir = Path("../datafiles/")
-
-
-
 @dataclass
 class Mouse:
     mouse_ID: str
+    data_dir: Path
     dates: list = None
     sessions: dict = None
     mouse_dir: Path = None
 
     def __post_init__(self):
-        self.mouse_dir = data_dir / self.mouse_ID
+        self.mouse_dir = Path(self.data_dir / self.mouse_ID)
         self.find_sesh_dates()
-        pass
 
     def find_sesh_dates(self):
         # Regex pattern to match directories with date format YYYYMMDD
@@ -43,23 +39,23 @@ class Sesh():
     date: str
     tau: float
     rewardzone: list
-    sesh_dir: Path = None
+    sesh_dir: Path
     areas: list = None
     start_locations: np.ndarray = None
     num_startloc: int = None
     
     def __post_init__(self):
-        self.sesh_dir = data_dir / self.mouse_ID / self.date
         self.find_areas()
         self.load_meta()
 
     @classmethod
-    def from_mouse(cls, mouse: Mouse, date: str, tau: float, rewardzone: list):
+    def from_mouse(cls, mouse: Mouse, date: str, tau: float, rewardzone: list, sesh_dir: Path):
         return cls(
             mouse_ID=mouse.mouse_ID,
             date=date,
             tau=tau,
-            rewardzone=rewardzone
+            rewardzone=rewardzone,
+            sesh_dir = sesh_dir
         )
 
     def find_areas(self):
@@ -108,9 +104,10 @@ class Shuffled():
         self.load_data()
         self.num_reps = self.spikes_lgt_shuffled.shape[0]
         self.num_units = self.spikes_lgt_shuffled.shape[-1]
+        self.show_data()
 
     @classmethod
-    def from_sesh(cls, sesh: Sesh):
+    def from_sesh(cls, sesh: Sesh, area: str):
         return cls(
             mouse_ID=sesh.mouse_ID,
             date=sesh.date,
@@ -119,14 +116,16 @@ class Shuffled():
             sesh_dir=sesh.sesh_dir,
             start_locations=sesh.start_locations,
             num_startlocs=sesh.num_startloc,
-            area="shuffled"
+            area=area
         )
     
     def load_data(self):
         shuffled_dir = self.sesh_dir / "shuffled"
         tau = str(int(self.tau*1000)) + "ms"
-        matching_files = [f for f in shuffled_dir.glob("*.npz") if tau in f.name]
-
+        matching_files = [
+            f for f in shuffled_dir.glob("*.npz") 
+            if self.area in f.name and tau in f.name
+        ]
         print("Loading shuffled data...")
         for file in matching_files:
             if "light" in file.name:
@@ -149,12 +148,25 @@ class Shuffled():
         self.pos_lgt = np.transpose(pos_lgt, (2, 1, 0))
         self.pos_drk = np.transpose(pos_drk, (2, 1, 0))
 
-        print(self.fr_lgt_shuffled.shape)
-        print(self.spikes_lgt_shuffled.shape)
-        print(self.pos_lgt.shape)
-        print(self.fr_drk_shuffled.shape)
-        print(self.spikes_drk_shuffled.shape)
-        print(self.pos_drk.shape)
+
+    def show_data(self):
+        print("-" * 50)
+        print("Mouse:", self.mouse_ID)
+        print("Session:", self.date)
+        print(f"Tbin Size: {self.tau}s or {int(self.tau * 1000)}ms")
+        print("Area loaded:", self.area)
+        print("Number of units:", self.num_units)
+        print()
+        print("{:<15} {:<30}".format("Data Type", "Trials, Tbins, Units"))
+        print("{:<15} {:<30}".format("spikes_lgt", str(self.spikes_lgt_shuffled.shape)))
+        print("{:<15} {:<30}".format("fr_lgt", str(self.fr_lgt_shuffled.shape)))
+        print("{:<15} {:<30}".format("pos_lgt", str(self.pos_lgt.shape)))
+        print("{:<15} {:<30}".format("spikes_drk", str(self.spikes_drk_shuffled.shape)))
+        print("{:<15} {:<30}".format("fr_drk", str(self.fr_drk_shuffled.shape)))
+        print("{:<15} {:<30}".format("pos_drk", str(self.pos_drk.shape)))
+        print()
+        print("Corrected trial start locations:", self.start_locations)
+        print("Number of starting locations:", self.num_startlocs)
 
 
 
@@ -177,10 +189,11 @@ class Data():
     spikes_drk: np.ndarray = None
     pos_lgt: np.ndarray = None
     pos_drk: np.ndarray = None
+    shuffled: bool = False
 
 
     def __post_init__(self):
-        if self.area != "shuffled":
+        if not self.shuffled:
             self.load_data()
             self.num_units = self.spikes_lgt.shape[-1]
         self.show_data()
@@ -217,6 +230,7 @@ class Data():
             spikes_drk = sesh.spikes_drk_shuffled[rep_idx],
             pos_lgt = sesh.pos_lgt[rep_idx],
             pos_drk = sesh.pos_drk[rep_idx],
+            shuffled = True
         )
 
 
@@ -246,8 +260,8 @@ class Data():
                 else:
                     spikerate_drk_path = spikecount_drk_path = file
         # Load data
-        self.fr_lgt = np.load(spikerate_lgt_path)['fr']
-        self.fr_drk = np.load(spikerate_drk_path)['fr']
+        # self.fr_lgt = np.load(spikerate_lgt_path)['fr']
+        # self.fr_drk = np.load(spikerate_drk_path)['fr']
         self.spikes_lgt = np.load(spikecount_lgt_path)['count']
         self.spikes_drk = np.load(spikecount_drk_path)['count']
         self.pos_lgt = np.load(spikecount_lgt_path)['pos'][:, 1, :]
@@ -255,8 +269,8 @@ class Data():
         # Swap axes to have shape (Trials, Tbins, Units)
         self.spikes_lgt = np.swapaxes(self.spikes_lgt, 1,2)
         self.spikes_drk = np.swapaxes(self.spikes_drk, 1,2)
-        self.fr_lgt = np.swapaxes(self.fr_lgt, 1,2)
-        self.fr_drk = np.swapaxes(self.fr_drk, 1,2)
+        # self.fr_lgt = np.swapaxes(self.fr_lgt, 1,2)
+        # self.fr_drk = np.swapaxes(self.fr_drk, 1,2)
 
         # 20251208: set fr to spikes / tau to ensure consistency
         self.fr_lgt = self.spikes_lgt / self.tau

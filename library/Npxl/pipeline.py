@@ -1,3 +1,7 @@
+import os
+from pathlib import Path
+from tqdm import tqdm
+from contextlib import redirect_stdout, redirect_stderr
 import numpy as np
 import pandas as pd
 
@@ -221,7 +225,7 @@ def save_and_plot(
         saveoutput: bool = True,
         savecsv: bool = True,
         savefig: bool = True,
-        save_dir: str = None,
+        save_dir: Path = None,
 ):
     """
     """
@@ -271,3 +275,110 @@ def save_and_plot(
                 filepath = save_dir / f"{data.mouse_ID}_{data.date}_{tau}ms_{data.area}_{data.num_units}_units_relpos_confusion_mtx_{paradigm}.png"
             figs.plot_relative_confusion_mtx(data.results['confusion_mtx'][paradigm], paradigm, savefig, filepath)
 
+
+
+
+
+def decode_shuffled_data(
+        shuffled_data, # d.Shuffled
+        save_dir: Path,
+        relpos: bool = False,
+        num_relbins: int = None,
+):
+    """
+    """
+    shuffled_data.POSTERIOR = []
+    shuffled_data.DECODED_POS = []
+    shuffled_data.results = []
+
+    data_name = f"{shuffled_data.mouse_ID} {shuffled_data.date} {shuffled_data.area} shuffled data"
+
+    for rep in tqdm(range(shuffled_data.num_reps), desc=f"Decoding {data_name}"):
+        with open(os.devnull, "w") as fnull:
+            with redirect_stdout(fnull), redirect_stderr(fnull):
+
+                data = d.Data.from_shuffled(shuffled_data, rep)
+                if relpos:
+                    data.POSTERIOR, data.DECODED_POS = decode_positions(
+                        data,
+                        num_pbins=num_relbins,
+                        num_pbins_decode=num_relbins,
+                        rel_pos=True,
+                        grouping=False
+                    )
+                    data.results = get_decoding_results(data, num_pbins=num_relbins, rel_pos=True)
+                else:
+                    data.POSTERIOR, data.DECODED_POS = decode_positions(data)
+                    data.results = get_decoding_results(data)
+
+                shuffled_data.POSTERIOR.append(data.POSTERIOR)
+                shuffled_data.DECODED_POS.append(data.DECODED_POS)
+                shuffled_data.results.append(data.results)
+                del data
+    print("Saving shuffled decoding outputs...")
+    np.savez(
+        save_dir / "shuffled_decoding_output.npz",
+        posterior = shuffled_data.POSTERIOR,
+        decoded_pos = shuffled_data.DECODED_POS,
+        results = shuffled_data.results
+    )
+
+
+
+
+
+def save_and_plot_shuffled(
+        shuffled_data, # d.Shuffled
+        relpos: bool = False,
+        savecsv: bool = True,
+        savefig: bool = True,
+        save_dir: Path = None,
+):
+    """
+    """
+    paradigms = ['lgtlgt', 'drkdrk', 'lgtdrk', 'drklgt']
+    metrics = shuffled_data.results[0].keys()
+
+    mean_confusion_mtx = {}
+    mean_results = {paradigm: {} for paradigm in paradigms}
+
+    print("Saving results...")
+    # Compute mean results across repetitions
+    for paradigm in paradigms:
+        for metric in metrics:
+            if metric == 'confusion_mtx':
+                confusion_mtx_allreps = np.stack(
+                    [shuffled_data.results[rep]['confusion_mtx'][paradigm]
+                    for rep in range(shuffled_data.num_reps)],
+                    axis=0 # shape: (num_reps, 46, 46)
+                )
+                mean_confusion_mtx[paradigm] = np.nanmean(confusion_mtx_allreps, axis=0)
+
+            else:
+                vals = [
+                    shuffled_data.results[rep][metric][paradigm]
+                    for rep in range(shuffled_data.num_reps)
+                ]
+                mean_results[paradigm][metric] = np.nanmean(vals)
+
+    # Create DataFrame of mean results
+    df = pd.DataFrame(mean_results).T  # transpose so paradigms are rows
+
+    # Export to CSV
+    if savecsv:
+        if relpos:
+            filename = f"{shuffled_data.mouse_ID}_{shuffled_data.date}_{shuffled_data.area}_{shuffled_data.num_units}_units_shuffled_relpos_results.csv"
+        else:
+            filename = f"{shuffled_data.mouse_ID}_{shuffled_data.date}_{shuffled_data.area}_{shuffled_data.num_units}_units_shuffled_results.csv"
+        df.to_csv(save_dir / filename)
+
+    # Plot mean confusion matrix
+    print("Plotting...")
+    for paradigm in paradigms:
+        filepath = None
+        if savefig:
+            if relpos:
+                filepath = save_dir / f"{shuffled_data.mouse_ID}_{shuffled_data.date}_{shuffled_data.area}_{shuffled_data.num_units}_units_shuffled_relpos_confusion_mtx_{paradigm}.png"
+            else:
+                filepath = save_dir / f"{shuffled_data.mouse_ID}_{shuffled_data.date}_{shuffled_data.area}_{shuffled_data.num_units}_units_shuffled_confusion_mtx_{paradigm}.png"
+        figs.plot_confusion_mtx(mean_confusion_mtx[paradigm], paradigm, savefig, filepath)
